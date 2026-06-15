@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.baomidou.mybatisplus.annotation.TableId
- *  com.baomidou.mybatisplus.annotation.TableName
- *  com.ocxworker.model.entity.CfCfg
- *  lombok.Generated
- */
 package com.ocxworker.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -14,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 import lombok.Generated;
 
-@TableName(value="cf_cfg")
+@TableName("cf_cfg")
 public class CfCfg {
     @TableId
     private String id;
@@ -22,10 +13,6 @@ public class CfCfg {
     private String zoneId;
     private String apiToken;
     private LocalDateTime createTime;
-
-    @Generated
-    public CfCfg() {
-    }
 
     @Generated
     public String getId() {
@@ -53,92 +40,105 @@ public class CfCfg {
     }
 
     @Generated
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
     @Generated
-    public void setDomain(String domain) {
+    public void setDomain(final String domain) {
         this.domain = domain;
     }
 
     @Generated
-    public void setZoneId(String zoneId) {
+    public void setZoneId(final String zoneId) {
         this.zoneId = zoneId;
     }
 
     @Generated
-    public void setApiToken(String apiToken) {
+    public void setApiToken(final String apiToken) {
         this.apiToken = apiToken;
     }
 
     @Generated
-    public void setCreateTime(LocalDateTime createTime) {
+    public void setCreateTime(final LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof CfCfg)) {
+        } else if (!(o instanceof CfCfg other)) {
             return false;
-        }
-        CfCfg other = (CfCfg)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$id = this.getId();
+            Object other$id = other.getId();
+            if (this$id == null ? other$id == null : this$id.equals(other$id)) {
+                Object this$domain = this.getDomain();
+                Object other$domain = other.getDomain();
+                if (this$domain == null ? other$domain == null : this$domain.equals(other$domain)) {
+                    Object this$zoneId = this.getZoneId();
+                    Object other$zoneId = other.getZoneId();
+                    if (this$zoneId == null ? other$zoneId == null : this$zoneId.equals(other$zoneId)) {
+                        Object this$apiToken = this.getApiToken();
+                        Object other$apiToken = other.getApiToken();
+                        if (this$apiToken == null ? other$apiToken == null : this$apiToken.equals(other$apiToken)) {
+                            Object this$createTime = this.getCreateTime();
+                            Object other$createTime = other.getCreateTime();
+                            return this$createTime == null ? other$createTime == null : this$createTime.equals(other$createTime);
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        String this$id = this.getId();
-        String other$id = other.getId();
-        if (this$id == null ? other$id != null : !this$id.equals(other$id)) {
-            return false;
-        }
-        String this$domain = this.getDomain();
-        String other$domain = other.getDomain();
-        if (this$domain == null ? other$domain != null : !this$domain.equals(other$domain)) {
-            return false;
-        }
-        String this$zoneId = this.getZoneId();
-        String other$zoneId = other.getZoneId();
-        if (this$zoneId == null ? other$zoneId != null : !this$zoneId.equals(other$zoneId)) {
-            return false;
-        }
-        String this$apiToken = this.getApiToken();
-        String other$apiToken = other.getApiToken();
-        if (this$apiToken == null ? other$apiToken != null : !this$apiToken.equals(other$apiToken)) {
-            return false;
-        }
-        LocalDateTime this$createTime = this.getCreateTime();
-        LocalDateTime other$createTime = other.getCreateTime();
-        return !(this$createTime == null ? other$createTime != null : !((Object)this$createTime).equals(other$createTime));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof CfCfg;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        String $id = this.getId();
+        Object $id = this.getId();
         result = result * 59 + ($id == null ? 43 : $id.hashCode());
-        String $domain = this.getDomain();
+        Object $domain = this.getDomain();
         result = result * 59 + ($domain == null ? 43 : $domain.hashCode());
-        String $zoneId = this.getZoneId();
+        Object $zoneId = this.getZoneId();
         result = result * 59 + ($zoneId == null ? 43 : $zoneId.hashCode());
-        String $apiToken = this.getApiToken();
+        Object $apiToken = this.getApiToken();
         result = result * 59 + ($apiToken == null ? 43 : $apiToken.hashCode());
-        LocalDateTime $createTime = this.getCreateTime();
-        result = result * 59 + ($createTime == null ? 43 : ((Object)$createTime).hashCode());
-        return result;
+        Object $createTime = this.getCreateTime();
+        return result * 59 + ($createTime == null ? 43 : $createTime.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "CfCfg(id=" + this.getId() + ", domain=" + this.getDomain() + ", zoneId=" + this.getZoneId() + ", apiToken=" + this.getApiToken() + ", createTime=" + String.valueOf(this.getCreateTime()) + ")";
+        return "CfCfg(id="
+            + this.getId()
+            + ", domain="
+            + this.getDomain()
+            + ", zoneId="
+            + this.getZoneId()
+            + ", apiToken="
+            + this.getApiToken()
+            + ", createTime="
+            + this.getCreateTime()
+            + ")";
     }
 }
-

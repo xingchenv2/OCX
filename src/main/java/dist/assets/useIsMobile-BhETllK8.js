@@ -1,0 +1,1 @@
+import{Tn as e,cn as t,sn as n}from"./antd-BPl1Au7U.js";var r=767;function i(i=r){let a=e(typeof window<`u`&&window.innerWidth<=i);function o(){a.value=window.innerWidth<=i}return n(()=>window.addEventListener(`resize`,o)),t(()=>window.removeEventListener(`resize`,o)),{isMobile:a,checkMobile:o}}export{i as t};

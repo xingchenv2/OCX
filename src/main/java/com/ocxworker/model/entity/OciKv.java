@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.baomidou.mybatisplus.annotation.TableId
- *  com.baomidou.mybatisplus.annotation.TableName
- *  com.ocxworker.model.entity.OciKv
- *  lombok.Generated
- */
 package com.ocxworker.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -14,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 import lombok.Generated;
 
-@TableName(value="oci_kv")
+@TableName("oci_kv")
 public class OciKv {
     @TableId
     private String id;
@@ -22,10 +13,6 @@ public class OciKv {
     private String value;
     private String type;
     private LocalDateTime createTime;
-
-    @Generated
-    public OciKv() {
-    }
 
     @Generated
     public String getId() {
@@ -53,92 +40,105 @@ public class OciKv {
     }
 
     @Generated
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
     @Generated
-    public void setCode(String code) {
+    public void setCode(final String code) {
         this.code = code;
     }
 
     @Generated
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
     @Generated
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
     @Generated
-    public void setCreateTime(LocalDateTime createTime) {
+    public void setCreateTime(final LocalDateTime createTime) {
         this.createTime = createTime;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof OciKv)) {
+        } else if (!(o instanceof OciKv other)) {
             return false;
-        }
-        OciKv other = (OciKv)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$id = this.getId();
+            Object other$id = other.getId();
+            if (this$id == null ? other$id == null : this$id.equals(other$id)) {
+                Object this$code = this.getCode();
+                Object other$code = other.getCode();
+                if (this$code == null ? other$code == null : this$code.equals(other$code)) {
+                    Object this$value = this.getValue();
+                    Object other$value = other.getValue();
+                    if (this$value == null ? other$value == null : this$value.equals(other$value)) {
+                        Object this$type = this.getType();
+                        Object other$type = other.getType();
+                        if (this$type == null ? other$type == null : this$type.equals(other$type)) {
+                            Object this$createTime = this.getCreateTime();
+                            Object other$createTime = other.getCreateTime();
+                            return this$createTime == null ? other$createTime == null : this$createTime.equals(other$createTime);
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        String this$id = this.getId();
-        String other$id = other.getId();
-        if (this$id == null ? other$id != null : !this$id.equals(other$id)) {
-            return false;
-        }
-        String this$code = this.getCode();
-        String other$code = other.getCode();
-        if (this$code == null ? other$code != null : !this$code.equals(other$code)) {
-            return false;
-        }
-        String this$value = this.getValue();
-        String other$value = other.getValue();
-        if (this$value == null ? other$value != null : !this$value.equals(other$value)) {
-            return false;
-        }
-        String this$type = this.getType();
-        String other$type = other.getType();
-        if (this$type == null ? other$type != null : !this$type.equals(other$type)) {
-            return false;
-        }
-        LocalDateTime this$createTime = this.getCreateTime();
-        LocalDateTime other$createTime = other.getCreateTime();
-        return !(this$createTime == null ? other$createTime != null : !((Object)this$createTime).equals(other$createTime));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof OciKv;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        String $id = this.getId();
+        Object $id = this.getId();
         result = result * 59 + ($id == null ? 43 : $id.hashCode());
-        String $code = this.getCode();
+        Object $code = this.getCode();
         result = result * 59 + ($code == null ? 43 : $code.hashCode());
-        String $value = this.getValue();
+        Object $value = this.getValue();
         result = result * 59 + ($value == null ? 43 : $value.hashCode());
-        String $type = this.getType();
+        Object $type = this.getType();
         result = result * 59 + ($type == null ? 43 : $type.hashCode());
-        LocalDateTime $createTime = this.getCreateTime();
-        result = result * 59 + ($createTime == null ? 43 : ((Object)$createTime).hashCode());
-        return result;
+        Object $createTime = this.getCreateTime();
+        return result * 59 + ($createTime == null ? 43 : $createTime.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "OciKv(id=" + this.getId() + ", code=" + this.getCode() + ", value=" + this.getValue() + ", type=" + this.getType() + ", createTime=" + String.valueOf(this.getCreateTime()) + ")";
+        return "OciKv(id="
+            + this.getId()
+            + ", code="
+            + this.getCode()
+            + ", value="
+            + this.getValue()
+            + ", type="
+            + this.getType()
+            + ", createTime="
+            + this.getCreateTime()
+            + ")";
     }
 }
-

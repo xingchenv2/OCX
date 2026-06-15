@@ -1,17 +1,7 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.enums.ArchitectureEnum
- *  lombok.Generated
- */
 package com.ocxworker.enums;
 
 import lombok.Generated;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 public enum ArchitectureEnum {
     ARM("ARM", "VM.Standard.A1.Flex"),
     AMD("AMD", "VM.Standard.E2.1.Micro");
@@ -20,10 +10,12 @@ public enum ArchitectureEnum {
     private final String shape;
 
     public static String getShape(String architecture) {
-        for (ArchitectureEnum e : ArchitectureEnum.values()) {
-            if (!e.getArchitecture().equalsIgnoreCase(architecture)) continue;
-            return e.getShape();
+        for (ArchitectureEnum e : values()) {
+            if (e.getArchitecture().equalsIgnoreCase(architecture)) {
+                return e.getShape();
+            }
         }
+
         return ARM.getShape();
     }
 
@@ -38,9 +30,8 @@ public enum ArchitectureEnum {
     }
 
     @Generated
-    private ArchitectureEnum(String architecture, String shape) {
+    private ArchitectureEnum(final String architecture, final String shape) {
         this.architecture = architecture;
         this.shape = shape;
     }
 }
-

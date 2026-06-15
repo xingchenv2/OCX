@@ -1,19 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.jcraft.jsch.Channel
- *  com.jcraft.jsch.ChannelExec
- *  com.jcraft.jsch.ChannelSftp
- *  com.jcraft.jsch.ChannelShell
- *  com.jcraft.jsch.JSch
- *  com.jcraft.jsch.JSchException
- *  com.jcraft.jsch.Proxy
- *  com.jcraft.jsch.ProxySOCKS5
- *  com.jcraft.jsch.Session
- *  com.ocxworker.webssh.WebSshConnectInfo
- *  com.ocxworker.webssh.WebSshJschSupport
- */
 package com.ocxworker.webssh;
 
 import com.jcraft.jsch.Channel;
@@ -22,10 +6,8 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Proxy;
 import com.jcraft.jsch.ProxySOCKS5;
 import com.jcraft.jsch.Session;
-import com.ocxworker.webssh.WebSshConnectInfo;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +24,7 @@ final class WebSshJschSupport {
             if (key == null || key.isBlank()) {
                 throw new JSchException("private key is empty");
             }
+
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
             String pass = info.getPassphrase();
             if (pass != null && !pass.isBlank()) {
@@ -50,12 +33,14 @@ final class WebSshJschSupport {
                 jsch.addIdentity("key", keyBytes, null, null);
             }
         }
+
         String host = info.getHostname();
         int port = info.getPort() > 0 ? info.getPort() : 22;
         Session session = jsch.getSession(info.getUsername(), host, port);
         if (info.getLoginType() == 0) {
             session.setPassword(info.getPassword() != null ? info.getPassword() : "");
         }
+
         Properties config = new Properties();
         config.put("StrictHostKeyChecking", "no");
         session.setConfig(config);
@@ -67,8 +52,10 @@ final class WebSshJschSupport {
             if (pu != null && !pu.isBlank()) {
                 proxy.setUserPasswd(pu, info.getProxyPass() != null ? info.getProxyPass() : "");
             }
-            session.setProxy((Proxy)proxy);
+
+            session.setProxy(proxy);
         }
+
         session.connect(10000);
         return session;
     }
@@ -82,8 +69,7 @@ final class WebSshJschSupport {
     }
 
     static void resizeShell(Channel channel, int cols, int rows) throws JSchException {
-        if (channel instanceof ChannelShell) {
-            ChannelShell shell = (ChannelShell)channel;
+        if (channel instanceof ChannelShell shell) {
             shell.setPtySize(cols, rows, 0, 0);
         }
     }
@@ -104,30 +90,25 @@ final class WebSshJschSupport {
         byte[] out = in.readAllBytes();
         byte[] er = err.readAllBytes();
         exec.disconnect();
-        if (out.length == 0 && er.length > 0) {
-            return new String(er, StandardCharsets.UTF_8);
-        }
-        return new String(out, StandardCharsets.UTF_8);
+        return out.length == 0 && er.length > 0 ? new String(er, StandardCharsets.UTF_8) : new String(out, StandardCharsets.UTF_8);
     }
 
-    static void closeQuietly(Session session, Channel ... channels) {
+    static void closeQuietly(Session session, Channel... channels) {
         if (channels != null) {
             for (Channel ch : channels) {
-                if (ch == null || !ch.isConnected()) continue;
-                try {
-                    ch.disconnect();
-                }
-                catch (Exception exception) {
-                    // empty catch block
+                if (ch != null && ch.isConnected()) {
+                    try {
+                        ch.disconnect();
+                    } catch (Exception var8) {
+                    }
                 }
             }
         }
+
         if (session != null && session.isConnected()) {
             try {
                 session.disconnect();
-            }
-            catch (Exception exception) {
-                // empty catch block
+            } catch (Exception var7) {
             }
         }
     }
@@ -140,4 +121,3 @@ final class WebSshJschSupport {
         return shell.getInputStream();
     }
 }
-

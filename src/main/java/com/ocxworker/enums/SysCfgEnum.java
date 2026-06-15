@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.enums.SysCfgEnum
- *  lombok.Generated
- */
 package com.ocxworker.enums;
 
 import lombok.Generated;
@@ -51,9 +44,8 @@ public enum SysCfgEnum {
     }
 
     @Generated
-    private SysCfgEnum(String code, String type) {
+    private SysCfgEnum(final String code, final String type) {
         this.code = code;
         this.type = type;
     }
 }
-

@@ -1,18 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.config.TelegramBotMenuInitializer
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.VerifyCodeService
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.boot.context.event.ApplicationReadyEvent
- *  org.springframework.context.event.EventListener
- *  org.springframework.stereotype.Component
- */
 package com.ocxworker.config;
 
 import com.ocxworker.service.NotificationService;
@@ -34,17 +19,14 @@ public class TelegramBotMenuInitializer {
     @Resource
     private NotificationService notificationService;
 
-    @EventListener(value={ApplicationReadyEvent.class})
+    @EventListener({ApplicationReadyEvent.class})
     public void onApplicationReady() {
-        if (!this.verifyCodeService.isTgConfigured()) {
-            return;
-        }
-        try {
-            this.notificationService.registerTelegramBotCommands();
-        }
-        catch (Exception e) {
-            log.warn("Telegram setMyCommands skipped: {}", (Object)e.getMessage());
+        if (this.verifyCodeService.isTgConfigured()) {
+            try {
+                this.notificationService.registerTelegramBotCommands();
+            } catch (Exception var2) {
+                log.warn("Telegram setMyCommands skipped: {}", var2.getMessage());
+            }
         }
     }
 }
-

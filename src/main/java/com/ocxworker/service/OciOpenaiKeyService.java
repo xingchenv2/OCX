@@ -1,26 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.StrUtil
- *  cn.hutool.crypto.digest.DigestUtil
- *  com.baomidou.mybatisplus.core.conditions.Wrapper
- *  com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
- *  com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper
- *  com.ocxworker.exception.OciException
- *  com.ocxworker.mapper.OciOpenaiKeyMapper
- *  com.ocxworker.mapper.OciUserMapper
- *  com.ocxworker.model.entity.OciOpenaiKey
- *  com.ocxworker.model.entity.OciUser
- *  com.ocxworker.service.OciOpenaiKeyService
- *  com.ocxworker.service.OciOpenaiKeyService$KeyCreateResult
- *  com.ocxworker.util.CommonUtils
- *  com.ocxworker.util.OciOpenaiKeyCipher
- *  jakarta.annotation.Resource
- *  org.springframework.beans.factory.annotation.Value
- *  org.springframework.stereotype.Service
- *  org.springframework.transaction.annotation.Transactional
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.StrUtil;
@@ -33,11 +10,9 @@ import com.ocxworker.mapper.OciOpenaiKeyMapper;
 import com.ocxworker.mapper.OciUserMapper;
 import com.ocxworker.model.entity.OciOpenaiKey;
 import com.ocxworker.model.entity.OciUser;
-import com.ocxworker.service.OciOpenaiKeyService;
 import com.ocxworker.util.CommonUtils;
 import com.ocxworker.util.OciOpenaiKeyCipher;
 import jakarta.annotation.Resource;
-import java.io.Serializable;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -51,127 +26,137 @@ public class OciOpenaiKeyService {
     private OciOpenaiKeyMapper openaiKeyMapper;
     @Resource
     private OciUserMapper ociUserMapper;
-    @Value(value="${web.password}")
+    @Value("${web.password}")
     private String webPassword;
     private static final String PREFIX = "sk-";
     private static final SecureRandom R = new SecureRandom();
 
-    @Transactional(rollbackFor={Exception.class})
-    public KeyCreateResult create(String ociUserId, String name) {
-        if (ociUserId == null || ociUserId.isBlank()) {
-            throw new OciException("\u8bf7\u9009\u62e9\u79df\u6237");
+    @Transactional(
+        rollbackFor = {Exception.class}
+    )
+    public OciOpenaiKeyService.KeyCreateResult create(String ociUserId, String name) {
+        if (ociUserId != null && !ociUserId.isBlank()) {
+            OciUser u = (OciUser)this.ociUserMapper.selectById(ociUserId);
+            if (u == null) {
+                throw new OciException("租户不存在");
+            } else {
+                int randomBytes = 32;
+                byte[] buf = new byte[randomBytes];
+                R.nextBytes(buf);
+                StringBuilder sb = new StringBuilder("sk-");
+
+                for (byte t : buf) {
+                    sb.append(String.format("%02x", t));
+                }
+
+                String keyPlain = sb.toString();
+                String hash = DigestUtil.sha256Hex(keyPlain);
+                OciOpenaiKey row = new OciOpenaiKey();
+                row.setId(CommonUtils.generateId());
+                row.setOciUserId(ociUserId);
+                row.setKeyHash(hash);
+                String prefix = keyPlain.length() > 16 ? keyPlain.substring(0, 12) : keyPlain;
+                row.setKeyPrefix(prefix);
+                row.setKeyEncrypted(OciOpenaiKeyCipher.encrypt(keyPlain, this.webPassword));
+                row.setName(name);
+                row.setDisabled(0);
+                row.setCreateTime(LocalDateTime.now());
+                this.openaiKeyMapper.insert(row);
+                return new OciOpenaiKeyService.KeyCreateResult(row.getId(), keyPlain, prefix, OciOpenaiKeyCipher.maskForDisplay(keyPlain));
+            }
+        } else {
+            throw new OciException("请选择租户");
         }
-        OciUser u = (OciUser)this.ociUserMapper.selectById((Serializable)((Object)ociUserId));
-        if (u == null) {
-            throw new OciException("\u79df\u6237\u4e0d\u5b58\u5728");
-        }
-        int randomBytes = 32;
-        byte[] buf = new byte[randomBytes];
-        R.nextBytes(buf);
-        StringBuilder sb = new StringBuilder(PREFIX);
-        for (byte t : buf) {
-            sb.append(String.format("%02x", t));
-        }
-        String keyPlain = sb.toString();
-        String hash = DigestUtil.sha256Hex((String)keyPlain);
-        OciOpenaiKey row = new OciOpenaiKey();
-        row.setId(CommonUtils.generateId());
-        row.setOciUserId(ociUserId);
-        row.setKeyHash(hash);
-        String prefix = keyPlain.length() > 16 ? keyPlain.substring(0, 12) : keyPlain;
-        row.setKeyPrefix(prefix);
-        row.setKeyEncrypted(OciOpenaiKeyCipher.encrypt((String)keyPlain, (String)this.webPassword));
-        row.setName(name);
-        row.setDisabled(Integer.valueOf(0));
-        row.setCreateTime(LocalDateTime.now());
-        this.openaiKeyMapper.insert((Object)row);
-        return new KeyCreateResult(row.getId(), keyPlain, prefix, OciOpenaiKeyCipher.maskForDisplay((String)keyPlain));
     }
 
     public List<OciOpenaiKey> listByTenant(String ociUserId) {
-        if (ociUserId == null || ociUserId.isBlank()) {
-            return List.of();
-        }
-        return this.openaiKeyMapper.selectList((Wrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciOpenaiKey::getOciUserId, (Object)ociUserId)).orderByDesc(OciOpenaiKey::getCreateTime));
+        return ociUserId != null && !ociUserId.isBlank()
+            ? this.openaiKeyMapper
+                .selectList(
+                    (Wrapper)(new LambdaQueryWrapper<OciOpenaiKey>().eq(OciOpenaiKey::getOciUserId, ociUserId)).orderByDesc(OciOpenaiKey::getCreateTime)
+                )
+            : List.of();
     }
 
     public OciOpenaiKey getById(String id) {
-        if (id == null || id.isBlank()) {
-            return null;
-        }
-        return (OciOpenaiKey)this.openaiKeyMapper.selectById((Serializable)((Object)id));
+        return id != null && !id.isBlank() ? (OciOpenaiKey)this.openaiKeyMapper.selectById(id) : null;
     }
 
     public String maskForList(OciOpenaiKey k) {
         if (k == null) {
             return "sk-****";
-        }
-        if (StrUtil.isNotBlank((CharSequence)k.getKeyEncrypted())) {
-            try {
-                String plain = OciOpenaiKeyCipher.decrypt((String)k.getKeyEncrypted(), (String)this.webPassword);
-                if (StrUtil.isNotBlank((CharSequence)plain)) {
-                    return OciOpenaiKeyCipher.maskForDisplay((String)plain);
+        } else {
+            if (StrUtil.isNotBlank(k.getKeyEncrypted())) {
+                try {
+                    String plain = OciOpenaiKeyCipher.decrypt(k.getKeyEncrypted(), this.webPassword);
+                    if (StrUtil.isNotBlank(plain)) {
+                        return OciOpenaiKeyCipher.maskForDisplay(plain);
+                    }
+                } catch (Exception var3) {
                 }
             }
-            catch (Exception exception) {
-                // empty catch block
-            }
+
+            return StrUtil.isNotBlank(k.getKeyPrefix()) ? k.getKeyPrefix() + "****" : "sk-****";
         }
-        if (StrUtil.isNotBlank((CharSequence)k.getKeyPrefix())) {
-            return k.getKeyPrefix() + "****";
-        }
-        return "sk-****";
     }
 
     public String revealPlainKey(String id) {
-        if (id == null || id.isBlank()) {
-            throw new OciException("id \u5fc5\u586b");
+        if (id != null && !id.isBlank()) {
+            OciOpenaiKey k = (OciOpenaiKey)this.openaiKeyMapper.selectById(id);
+            if (k == null) {
+                throw new OciException("密钥不存在");
+            } else if (StrUtil.isBlank(k.getKeyEncrypted())) {
+                throw new OciException("该密钥为旧数据，未保存完整密钥，请删除后重新生成");
+            } else {
+                String plain = OciOpenaiKeyCipher.decrypt(k.getKeyEncrypted(), this.webPassword);
+                if (StrUtil.isBlank(plain)) {
+                    throw new OciException("密钥解密失败（可能修改过面板登录密码），请重新生成密钥");
+                } else {
+                    return plain;
+                }
+            }
+        } else {
+            throw new OciException("id 必填");
         }
-        OciOpenaiKey k = (OciOpenaiKey)this.openaiKeyMapper.selectById((Serializable)((Object)id));
-        if (k == null) {
-            throw new OciException("\u5bc6\u94a5\u4e0d\u5b58\u5728");
-        }
-        if (StrUtil.isBlank((CharSequence)k.getKeyEncrypted())) {
-            throw new OciException("\u8be5\u5bc6\u94a5\u4e3a\u65e7\u6570\u636e\uff0c\u672a\u4fdd\u5b58\u5b8c\u6574\u5bc6\u94a5\uff0c\u8bf7\u5220\u9664\u540e\u91cd\u65b0\u751f\u6210");
-        }
-        String plain = OciOpenaiKeyCipher.decrypt((String)k.getKeyEncrypted(), (String)this.webPassword);
-        if (StrUtil.isBlank((CharSequence)plain)) {
-            throw new OciException("\u5bc6\u94a5\u89e3\u5bc6\u5931\u8d25\uff08\u53ef\u80fd\u4fee\u6539\u8fc7\u9762\u677f\u767b\u5f55\u5bc6\u7801\uff09\uff0c\u8bf7\u91cd\u65b0\u751f\u6210\u5bc6\u94a5");
-        }
-        return plain;
     }
 
-    @Transactional(rollbackFor={Exception.class})
+    @Transactional(
+        rollbackFor = {Exception.class}
+    )
     public void setDisabled(String id, boolean disabled) {
-        OciOpenaiKey k = (OciOpenaiKey)this.openaiKeyMapper.selectById((Serializable)((Object)id));
-        if (k == null) {
-            return;
+        OciOpenaiKey k = (OciOpenaiKey)this.openaiKeyMapper.selectById(id);
+        if (k != null) {
+            k.setDisabled(disabled ? 1 : 0);
+            this.openaiKeyMapper.updateById(k);
         }
-        k.setDisabled(Integer.valueOf(disabled ? 1 : 0));
-        this.openaiKeyMapper.updateById((Object)k);
     }
 
-    @Transactional(rollbackFor={Exception.class})
+    @Transactional(
+        rollbackFor = {Exception.class}
+    )
     public void remove(String id) {
-        this.openaiKeyMapper.deleteById((Serializable)((Object)id));
+        this.openaiKeyMapper.deleteById(id);
     }
 
     public OciOpenaiKey findByPlainKey(String plain) {
-        if (plain == null || plain.isBlank() || !plain.startsWith(PREFIX)) {
+        if (plain != null && !plain.isBlank() && plain.startsWith("sk-")) {
+            String hash = DigestUtil.sha256Hex(plain);
+            return (OciOpenaiKey)this.openaiKeyMapper.selectOne((Wrapper)new LambdaQueryWrapper<OciOpenaiKey>().eq(OciOpenaiKey::getKeyHash, hash));
+        } else {
             return null;
         }
-        String hash = DigestUtil.sha256Hex((String)plain);
-        return (OciOpenaiKey)this.openaiKeyMapper.selectOne((Wrapper)new LambdaQueryWrapper().eq(OciOpenaiKey::getKeyHash, (Object)hash));
     }
 
     public void updateLastUsed(String id) {
-        if (id == null) {
-            return;
+        if (id != null) {
+            this.openaiKeyMapper
+                .update(
+                    null,
+                    (Wrapper)((LambdaUpdateWrapper)new LambdaUpdateWrapper().set(OciOpenaiKey::getLastUsed, LocalDateTime.now())).eq(OciOpenaiKey::getId, id)
+                );
         }
-        this.openaiKeyMapper.update(null, (Wrapper)((LambdaUpdateWrapper)new LambdaUpdateWrapper().set(OciOpenaiKey::getLastUsed, (Object)LocalDateTime.now())).eq(OciOpenaiKey::getId, (Object)id));
+    }
+
+    public static record KeyCreateResult(String id, String plainKey, String keyPrefix, String keyMasked) {
     }
 }
-
-    record KeyCreateResult(String id, String plainKey, String keyPrefix, String keyMasked) {}
-
-

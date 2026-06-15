@@ -1,32 +1,9 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.StrUtil
- *  cn.hutool.json.JSONArray
- *  cn.hutool.json.JSONObject
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.TelegramInboundUpdateDispatcher
- *  com.ocxworker.service.TelegramLongPollingRunner
- *  com.ocxworker.service.VerifyCodeService
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.boot.context.event.ApplicationReadyEvent
- *  org.springframework.context.event.EventListener
- *  org.springframework.stereotype.Component
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import com.ocxworker.enums.SysCfgEnum;
-import com.ocxworker.service.NotificationService;
-import com.ocxworker.service.TelegramInboundUpdateDispatcher;
-import com.ocxworker.service.VerifyCodeService;
 import jakarta.annotation.Resource;
 import lombok.Generated;
 import org.slf4j.Logger;
@@ -48,9 +25,9 @@ public class TelegramLongPollingRunner {
     private TelegramInboundUpdateDispatcher telegramInboundUpdateDispatcher;
     private volatile String lastWebhookCleanupToken;
 
-    @EventListener(value={ApplicationReadyEvent.class})
+    @EventListener({ApplicationReadyEvent.class})
     public void start() {
-        Thread t = Thread.ofVirtual().name("oci-tg-getUpdates").unstarted(() -> this.runForever());
+        Thread t = Thread.ofVirtual().name("oci-tg-getUpdates").unstarted(this::runForever);
         t.setDaemon(true);
         t.start();
         log.info("[TG] getUpdates long-poll thread started");
@@ -59,51 +36,54 @@ public class TelegramLongPollingRunner {
     private void runForever() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                long nextOffset;
-                JSONArray updates;
                 if (!this.verifyCodeService.isTgConfigured()) {
                     Thread.sleep(5000L);
-                    continue;
-                }
-                String token = this.notificationService.getKvValue(SysCfgEnum.TG_BOT_TOKEN);
-                if (StrUtil.isBlank((CharSequence)token)) {
-                    Thread.sleep(5000L);
-                    continue;
-                }
-                if (!token.equals(this.lastWebhookCleanupToken)) {
-                    boolean cleared = this.notificationService.telegramDeleteWebhook(token);
-                    this.lastWebhookCleanupToken = token;
-                    log.info("[TG] deleteWebhook for getUpdates mode: ok={}", (Object)cleared);
-                }
-                if ((updates = this.notificationService.telegramGetUpdates(token, nextOffset = this.notificationService.getTelegramUpdatesNextOffset(), 25)) == null) {
-                    Thread.sleep(2000L);
-                    continue;
-                }
-                long maxSeen = -1L;
-                for (int i = 0; i < updates.size(); ++i) {
-                    long uid;
-                    JSONObject u = updates.getJSONObject((Object)i);
-                    if (u == null) continue;
-                    Long uidObj = u.getLong((Object)"update_id");
-                    long l = uid = uidObj == null ? 0L : uidObj;
-                    if (uid > 0L) {
-                        maxSeen = Math.max(maxSeen, uid);
+                } else {
+                    String token = this.notificationService.getKvValue(SysCfgEnum.TG_BOT_TOKEN);
+                    if (StrUtil.isBlank(token)) {
+                        Thread.sleep(5000L);
+                    } else {
+                        if (!token.equals(this.lastWebhookCleanupToken)) {
+                            boolean cleared = this.notificationService.telegramDeleteWebhook(token);
+                            this.lastWebhookCleanupToken = token;
+                            log.info("[TG] deleteWebhook for getUpdates mode: ok={}", cleared);
+                        }
+
+                        long nextOffset = this.notificationService.getTelegramUpdatesNextOffset();
+                        JSONArray updates = this.notificationService.telegramGetUpdates(token, nextOffset, 25);
+                        if (updates == null) {
+                            Thread.sleep(2000L);
+                        } else {
+                            long maxSeen = -1L;
+
+                            for (int i = 0; i < updates.size(); i++) {
+                                JSONObject u = updates.getJSONObject(i);
+                                if (u != null) {
+                                    Long uidObj = u.getLong("update_id");
+                                    long uid = uidObj == null ? 0L : uidObj;
+                                    if (uid > 0L) {
+                                        maxSeen = Math.max(maxSeen, uid);
+                                    }
+
+                                    this.telegramInboundUpdateDispatcher.dispatchUpdateJson(u.toString());
+                                }
+                            }
+
+                            if (maxSeen >= 0L) {
+                                this.notificationService.saveTelegramUpdatesNextOffset(maxSeen + 1L);
+                            }
+                        }
                     }
-                    this.telegramInboundUpdateDispatcher.dispatchUpdateJson(u.toString());
                 }
-                if (maxSeen < 0L) continue;
-                this.notificationService.saveTelegramUpdatesNextOffset(maxSeen + 1L);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException var13) {
                 Thread.currentThread().interrupt();
                 break;
-            }
-            catch (Exception e) {
-                log.warn("[TG] getUpdates loop: {}", (Object)e.getMessage());
+            } catch (Exception var14) {
+                log.warn("[TG] getUpdates loop: {}", var14.getMessage());
+
                 try {
                     Thread.sleep(2000L);
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException var12) {
                     Thread.currentThread().interrupt();
                     break;
                 }
@@ -111,4 +91,3 @@ public class TelegramLongPollingRunner {
         }
     }
 }
-

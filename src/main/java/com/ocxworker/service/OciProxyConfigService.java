@@ -1,44 +1,28 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.exception.OciException
- *  com.ocxworker.model.dto.OciProxySnapshot
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.OciProxyConfigService
- *  com.ocxworker.util.socks.Socks5Tunnel
- *  com.oracle.bmc.http.ClientConfigurator
- *  com.oracle.bmc.http.client.ClientProperty
- *  com.oracle.bmc.http.client.ProxyConfiguration
- *  com.oracle.bmc.http.client.jersey3.Jersey3ClientProperty
- *  jakarta.annotation.PostConstruct
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import com.ocxworker.enums.SysCfgEnum;
 import com.ocxworker.exception.OciException;
 import com.ocxworker.model.dto.OciProxySnapshot;
-import com.ocxworker.service.NotificationService;
 import com.ocxworker.util.socks.Socks5Tunnel;
 import com.oracle.bmc.http.ClientConfigurator;
-import com.oracle.bmc.http.client.ClientProperty;
 import com.oracle.bmc.http.client.ProxyConfiguration;
 import com.oracle.bmc.http.client.jersey3.Jersey3ClientProperty;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import java.io.IOException;
 import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
+import java.net.Authenticator.RequestorType;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpClient.Builder;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -48,9 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @Service
 public class OciProxyConfigService {
     @Generated
@@ -75,14 +56,13 @@ public class OciProxyConfigService {
 
     public void reload() {
         try {
-            OciProxySnapshot s;
-            this.cache = s = OciProxySnapshot.fromKv(e -> this.notificationService.getKvValue(e));
+            OciProxySnapshot s = OciProxySnapshot.fromKv(ex -> this.notificationService.getKvValue(ex));
+            this.cache = s;
             if (!s.enabled() || !s.canConnect()) {
-                OciProxyConfigService.clearInProcessHttpSocksProxySystemProperties();
+                clearInProcessHttpSocksProxySystemProperties();
             }
-        }
-        catch (Exception e2) {
-            log.warn("OciProxy reload: {}", (Object)e2.getMessage());
+        } catch (Exception var2) {
+            log.warn("OciProxy reload: {}", var2.getMessage());
         }
     }
 
@@ -100,11 +80,11 @@ public class OciProxyConfigService {
 
     public static ClientConfigurator ociSdkJerseyDirectConfigurator() {
         return b -> {
-            b.property((ClientProperty)Jersey3ClientProperty.create((String)"jersey.config.apache.client.useSystemProperties"), (Object)Boolean.FALSE);
-            b.property((ClientProperty)Jersey3ClientProperty.create((String)"jersey.config.apache.client.credentialsProvider"), null);
-            b.property((ClientProperty)Jersey3ClientProperty.create((String)"jersey.config.client.proxy.uri"), null);
-            b.property((ClientProperty)Jersey3ClientProperty.create((String)"jersey.config.client.proxy.username"), null);
-            b.property((ClientProperty)Jersey3ClientProperty.create((String)"jersey.config.client.proxy.password"), null);
+            b.property(Jersey3ClientProperty.create("jersey.config.apache.client.useSystemProperties"), Boolean.FALSE);
+            b.property(Jersey3ClientProperty.create("jersey.config.apache.client.credentialsProvider"), null);
+            b.property(Jersey3ClientProperty.create("jersey.config.client.proxy.uri"), null);
+            b.property(Jersey3ClientProperty.create("jersey.config.client.proxy.username"), null);
+            b.property(Jersey3ClientProperty.create("jersey.config.client.proxy.password"), null);
         };
     }
 
@@ -112,83 +92,93 @@ public class OciProxyConfigService {
         return this.newOutboundHttpClientBuilder().build();
     }
 
-    public HttpClient.Builder newOutboundHttpClientBuilder() {
-        HttpClient.Builder b = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10L));
-        if (!this.cache.enabled() || !this.cache.canConnect()) {
-            return b.proxy(OciProxyConfigService.noProxySelector());
+    public Builder newOutboundHttpClientBuilder() {
+        Builder b = HttpClient.newBuilder().version(Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10L));
+        if (this.cache.enabled() && this.cache.canConnect()) {
+            b.proxy(singleProxy(this.cache.toJavaNetProxy()));
+            b.authenticator(authenticatorFor(this.cache));
+            return b;
+        } else {
+            return b.proxy(noProxySelector());
         }
-        b.proxy(OciProxyConfigService.singleProxy((Proxy)this.cache.toJavaNetProxy()));
-        b.authenticator(OciProxyConfigService.authenticatorFor((OciProxySnapshot)this.cache));
-        return b;
     }
 
     public String testWithParams(OciProxySnapshot test) {
         if (!test.canConnect()) {
-            throw new OciException("\u8bf7\u586b\u5199\u6709\u6548\u7684\u4e3b\u673a\u3001\u7aef\u53e3\uff0c\u6216\u300c\u5b8c\u6574 URL\u300d");
-        }
-        try {
-            HttpClient client = OciProxyConfigService.newHttpClientForSnapshot((OciProxySnapshot)test);
-            HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/zen")).header("User-Agent", "ocx-worker/1.0").timeout(Duration.ofSeconds(20L)).GET().build();
-            long t0 = System.currentTimeMillis();
-            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() < 200 || resp.statusCode() >= 400) {
-                throw new OciException("HTTP \u72b6\u6001: " + resp.statusCode());
+            throw new OciException("请填写有效的主机、端口，或「完整 URL」");
+        } else {
+            try {
+                HttpClient client = newHttpClientForSnapshot(test);
+                HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/zen"))
+                    .header("User-Agent", "ocx-worker/1.0")
+                    .timeout(Duration.ofSeconds(20L))
+                    .GET()
+                    .build();
+                long t0 = System.currentTimeMillis();
+                HttpResponse<String> resp = client.send(req, BodyHandlers.ofString());
+                if (resp.statusCode() >= 200 && resp.statusCode() < 400) {
+                    return "ok，" + (System.currentTimeMillis() - t0) + " ms";
+                } else {
+                    throw new OciException("HTTP 状态: " + resp.statusCode());
+                }
+            } catch (OciException var7) {
+                throw var7;
+            } catch (Exception var8) {
+                throw new OciException("测试失败: " + var8.getMessage());
             }
-            return "ok\uff0c" + (System.currentTimeMillis() - t0) + " ms";
-        }
-        catch (OciException e) {
-            throw e;
-        }
-        catch (Exception e) {
-            throw new OciException("\u6d4b\u8bd5\u5931\u8d25: " + e.getMessage());
         }
     }
 
     public static HttpClient newHttpClientForSnapshot(OciProxySnapshot t) {
-        return OciProxyConfigService.newHttpClientBuilderForSnapshot((OciProxySnapshot)t).build();
+        return newHttpClientBuilderForSnapshot(t).build();
     }
 
-    public static HttpClient.Builder newHttpClientBuilderForSnapshot(OciProxySnapshot t) {
-        HttpClient.Builder b = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10L));
-        if (!t.enabled() || !t.canConnect()) {
-            return b.proxy(OciProxyConfigService.noProxySelector());
+    public static Builder newHttpClientBuilderForSnapshot(OciProxySnapshot t) {
+        Builder b = HttpClient.newBuilder().version(Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(10L));
+        if (t.enabled() && t.canConnect()) {
+            b.proxy(singleProxy(t.toJavaNetProxy()));
+            b.authenticator(authenticatorFor(t));
+            return b;
+        } else {
+            return b.proxy(noProxySelector());
         }
-        b.proxy(OciProxyConfigService.singleProxy((Proxy)t.toJavaNetProxy()));
-        b.authenticator(OciProxyConfigService.authenticatorFor((OciProxySnapshot)t));
-        return b;
     }
 
     private static Authenticator authenticatorFor(OciProxySnapshot s) {
-        String user = Socks5Tunnel.normalizeSocksCredential((String)s.proxyUser());
-        char[] pass = Socks5Tunnel.normalizeSocksCredential((String)s.proxyPass()).toCharArray();
-        if (user.isEmpty() && pass.length == 0) {
-            return new Authenticator() {
-                protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
-                    return null;
-                }
-            };
-        }
-        return new Authenticator() {
-            protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
-                return new java.net.PasswordAuthentication(user, pass);
+        final String user = Socks5Tunnel.normalizeSocksCredential(s.proxyUser());
+        final char[] pass = Socks5Tunnel.normalizeSocksCredential(s.proxyPass()).toCharArray();
+        return user.isEmpty() && pass.length == 0 ? new Authenticator() {
+        } : new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return this.getRequestorType() == RequestorType.PROXY ? new PasswordAuthentication(user, pass) : null;
             }
         };
     }
 
     public void persistAndReload(OciProxySnapshot s) {
-        Map m = s.toRawKvForPersistence();
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_ENABLED, (String)m.get("enabled"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_TYPE, (String)m.get("type"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_HOST, (String)m.get("host"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_PORT, (String)m.get("port"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_USER, (String)m.get("user"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_PASS, (String)m.get("pass"));
-        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_FULL_URL, (String)m.get("fullUrl"));
+        Map<String, String> m = s.toRawKvForPersistence();
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_ENABLED, m.get("enabled"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_TYPE, m.get("type"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_HOST, m.get("host"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_PORT, m.get("port"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_USER, m.get("user"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_PASS, m.get("pass"));
+        this.notificationService.saveKvValue(SysCfgEnum.OCI_PROXY_FULL_URL, m.get("fullUrl"));
         this.reload();
     }
 
     private static ProxySelector noProxySelector() {
-        return ProxySelector.of(null);
+        return new ProxySelector() {
+            @Override
+            public List<Proxy> select(URI uri) {
+                return List.of(Proxy.NO_PROXY);
+            }
+
+            @Override
+            public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+            }
+        };
     }
 
     private static ProxySelector singleProxy(Proxy proxy) {
@@ -197,26 +187,35 @@ public class OciProxyConfigService {
             public List<Proxy> select(URI uri) {
                 return List.of(proxy);
             }
+
             @Override
-            public void connectFailed(URI uri, java.net.SocketAddress sa, java.io.IOException ioe) {
-                // no-op
+            public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
             }
         };
     }
 
     public static void clearInProcessHttpSocksProxySystemProperties() {
-        for (String k : List.of("http.proxyHost", "http.proxyPort", "https.proxyHost", "https.proxyPort", "ftp.proxyHost", "ftp.proxyPort", "socksProxyHost", "socksProxyPort", "http.nonProxyHosts", "socksNonProxyHosts")) {
+        for (String k : List.of(
+            "http.proxyHost",
+            "http.proxyPort",
+            "https.proxyHost",
+            "https.proxyPort",
+            "ftp.proxyHost",
+            "ftp.proxyPort",
+            "socksProxyHost",
+            "socksProxyPort",
+            "http.nonProxyHosts",
+            "socksNonProxyHosts"
+        )) {
             try {
                 System.clearProperty(k);
+            } catch (Exception var4) {
             }
-            catch (Exception exception) {}
         }
+
         try {
             System.setProperty("java.net.useSystemProxies", "false");
-        }
-        catch (Exception exception) {
-            // empty catch block
+        } catch (Exception var3) {
         }
     }
 }
-

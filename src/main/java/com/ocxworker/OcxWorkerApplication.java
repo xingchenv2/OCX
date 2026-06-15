@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.OcxWorkerApplication
- *  org.springframework.boot.SpringApplication
- *  org.springframework.boot.autoconfigure.SpringBootApplication
- *  org.springframework.scheduling.annotation.EnableScheduling
- */
 package com.ocxworker;
 
 import java.util.TimeZone;
@@ -19,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class OcxWorkerApplication {
     public static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
-        SpringApplication.run(OcxWorkerApplication.class, (String[])args);
+        SpringApplication.run(OcxWorkerApplication.class, args);
     }
 }
-

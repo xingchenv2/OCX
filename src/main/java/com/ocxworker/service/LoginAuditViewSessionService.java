@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.StrUtil
- *  com.ocxworker.service.LoginAuditViewSessionService
- *  com.ocxworker.util.CommonUtils
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.StrUtil;
@@ -17,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class LoginAuditViewSessionService {
     private static final long TTL_MS = 1800000L;
-    private final ConcurrentHashMap<String, Long> sessions = new ConcurrentHashMap();
+    private final ConcurrentHashMap<String, Long> sessions = new ConcurrentHashMap<>();
 
     public String issue() {
         String id = CommonUtils.generateId();
@@ -26,18 +17,18 @@ public class LoginAuditViewSessionService {
     }
 
     public boolean isValid(String id) {
-        if (StrUtil.isBlank((CharSequence)id)) {
+        if (StrUtil.isBlank(id)) {
             return false;
+        } else {
+            Long exp = this.sessions.get(id);
+            if (exp == null) {
+                return false;
+            } else if (System.currentTimeMillis() > exp) {
+                this.sessions.remove(id);
+                return false;
+            } else {
+                return true;
+            }
         }
-        Long exp = (Long)this.sessions.get(id);
-        if (exp == null) {
-            return false;
-        }
-        if (System.currentTimeMillis() > exp) {
-            this.sessions.remove(id);
-            return false;
-        }
-        return true;
     }
 }
-

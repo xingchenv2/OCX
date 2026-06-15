@@ -1,16 +1,6 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.dto.ShapeEditTaskStatus
- *  com.ocxworker.model.entity.ShapeEditTask
- *  com.ocxworker.model.entity.ShapeEditTask$Status
- *  lombok.Generated
- */
 package com.ocxworker.model.entity;
 
 import com.ocxworker.model.dto.ShapeEditTaskStatus;
-import com.ocxworker.model.entity.ShapeEditTask;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -28,18 +18,29 @@ public class ShapeEditTask {
     private final long retryIntervalMillis;
     private final Callable<Map<String, Object>> operation;
     private final Object pauseMonitor = new Object();
-    private final Instant createdAt;
-    private volatile Instant updatedAt = this.createdAt = Instant.now();
+    private final Instant createdAt = Instant.now();
+    private volatile Instant updatedAt = this.createdAt;
     private volatile Instant finishedAt;
-    private volatile Status status = Status.PENDING;
-    private volatile String message = "\u68c0\u6d4b\u5230\u7f3a\u8d27\uff0c\u5c06\u5728\u540e\u53f0\u81ea\u52a8\u91cd\u8bd5";
+    private volatile ShapeEditTask.Status status = ShapeEditTask.Status.PENDING;
+    private volatile String message = "检测到缺货，将在后台自动重试";
     private volatile int retryCount;
     private volatile boolean pauseRequested;
     private volatile boolean stopRequested;
     private volatile Thread thread;
     private volatile Map<String, Object> result;
 
-    public ShapeEditTask(String taskId, String tenantId, String instanceId, String region, String targetShape, Float targetOcpus, Float targetMemoryInGBs, int maxRetries, long retryIntervalMillis, Callable<Map<String, Object>> operation) {
+    public ShapeEditTask(
+        String taskId,
+        String tenantId,
+        String instanceId,
+        String region,
+        String targetShape,
+        Float targetOcpus,
+        Float targetMemoryInGBs,
+        int maxRetries,
+        long retryIntervalMillis,
+        Callable<Map<String, Object>> operation
+    ) {
         this.taskId = taskId;
         this.tenantId = tenantId;
         this.instanceId = instanceId;
@@ -57,109 +58,114 @@ public class ShapeEditTask {
     }
 
     public void markRunning(String message) {
-        this.status = Status.RUNNING;
+        this.status = ShapeEditTask.Status.RUNNING;
         this.message = message;
         this.touch();
     }
 
     public void markWaiting(String message) {
-        this.status = this.pauseRequested ? Status.PAUSED : Status.PENDING;
+        this.status = this.pauseRequested ? ShapeEditTask.Status.PAUSED : ShapeEditTask.Status.PENDING;
         this.message = message;
         this.touch();
     }
 
     public void markSuccess(Map<String, Object> result) {
         this.result = result;
-        this.status = Status.SUCCESS;
-        this.message = "\u5f62\u72b6\u53d8\u66f4\u6210\u529f";
+        this.status = ShapeEditTask.Status.SUCCESS;
+        this.message = "形状变更成功";
         this.finish();
     }
 
     public void markFailed(String message) {
-        this.status = Status.FAILED;
+        this.status = ShapeEditTask.Status.FAILED;
         this.message = message;
         this.finish();
     }
 
     public void markStopped(String message) {
-        this.status = Status.STOPPED;
+        this.status = ShapeEditTask.Status.STOPPED;
         this.message = message;
         this.finish();
     }
 
     public void incrementRetryCount() {
-        ++this.retryCount;
+        this.retryCount++;
         this.touch();
     }
 
     public void pause() {
-        if (this.isTerminal()) {
-            return;
-        }
-        this.pauseRequested = true;
-        this.status = Status.PAUSED;
-        this.message = "\u5df2\u6682\u505c";
-        this.touch();
-    }
-
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
-    public void resume() {
-        if (this.isTerminal()) {
-            return;
-        }
-        Object object = this.pauseMonitor;
-        synchronized (object) {
-            this.pauseRequested = false;
-            this.status = Status.PENDING;
-            this.message = "\u5df2\u6062\u590d\uff0c\u7b49\u5f85\u4e0b\u4e00\u6b21\u91cd\u8bd5";
+        if (!this.isTerminal()) {
+            this.pauseRequested = true;
+            this.status = ShapeEditTask.Status.PAUSED;
+            this.message = "已暂停";
             this.touch();
-            this.pauseMonitor.notifyAll();
         }
     }
 
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
+    public void resume() {
+        if (!this.isTerminal()) {
+            synchronized (this.pauseMonitor) {
+                this.pauseRequested = false;
+                this.status = ShapeEditTask.Status.PENDING;
+                this.message = "已恢复，等待下一次重试";
+                this.touch();
+                this.pauseMonitor.notifyAll();
+            }
+        }
+    }
+
     public void stop() {
-        if (this.isTerminal()) {
-            return;
+        if (!this.isTerminal()) {
+            this.stopRequested = true;
+            Thread t = this.thread;
+            if (t != null) {
+                t.interrupt();
+            }
+
+            synchronized (this.pauseMonitor) {
+                this.pauseMonitor.notifyAll();
+            }
+
+            this.markStopped("已停止");
         }
-        this.stopRequested = true;
-        Thread t = this.thread;
-        if (t != null) {
-            t.interrupt();
-        }
-        Object object = this.pauseMonitor;
-        synchronized (object) {
-            this.pauseMonitor.notifyAll();
-        }
-        this.markStopped("\u5df2\u505c\u6b62");
     }
 
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
     public boolean awaitIfPaused() throws InterruptedException {
-        Object object = this.pauseMonitor;
-        synchronized (object) {
+        synchronized (this.pauseMonitor) {
             while (this.pauseRequested && !this.stopRequested) {
-                this.status = Status.PAUSED;
-                this.message = "\u5df2\u6682\u505c";
+                this.status = ShapeEditTask.Status.PAUSED;
+                this.message = "已暂停";
                 this.touch();
                 this.pauseMonitor.wait();
             }
         }
+
         return this.stopRequested;
     }
 
     public boolean isTerminal() {
-        return this.status == Status.SUCCESS || this.status == Status.FAILED || this.status == Status.STOPPED;
+        return this.status == ShapeEditTask.Status.SUCCESS || this.status == ShapeEditTask.Status.FAILED || this.status == ShapeEditTask.Status.STOPPED;
     }
 
     public ShapeEditTaskStatus toStatus() {
-        return ShapeEditTaskStatus.builder().taskId(this.taskId).tenantId(this.tenantId).instanceId(this.instanceId).region(this.region).status(this.status).message(this.message).retryCount(this.retryCount).maxRetries(this.maxRetries).pending(this.status == Status.PENDING || this.status == Status.RUNNING || this.status == Status.PAUSED).paused(this.status == Status.PAUSED).stopped(this.status == Status.STOPPED).terminal(this.isTerminal()).createdAt(this.createdAt).updatedAt(this.updatedAt).finishedAt(this.finishedAt).result(this.result).build();
+        return ShapeEditTaskStatus.builder()
+            .taskId(this.taskId)
+            .tenantId(this.tenantId)
+            .instanceId(this.instanceId)
+            .region(this.region)
+            .status(this.status)
+            .message(this.message)
+            .retryCount(this.retryCount)
+            .maxRetries(this.maxRetries)
+            .pending(this.status == ShapeEditTask.Status.PENDING || this.status == ShapeEditTask.Status.RUNNING || this.status == ShapeEditTask.Status.PAUSED)
+            .paused(this.status == ShapeEditTask.Status.PAUSED)
+            .stopped(this.status == ShapeEditTask.Status.STOPPED)
+            .terminal(this.isTerminal())
+            .createdAt(this.createdAt)
+            .updatedAt(this.updatedAt)
+            .finishedAt(this.finishedAt)
+            .result(this.result)
+            .build();
     }
 
     private void finish() {
@@ -242,7 +248,7 @@ public class ShapeEditTask {
     }
 
     @Generated
-    public Status getStatus() {
+    public ShapeEditTask.Status getStatus() {
         return this.status;
     }
 
@@ -275,10 +281,13 @@ public class ShapeEditTask {
     public Map<String, Object> getResult() {
         return this.result;
     }
-}
 
-    enum Status {
-        PENDING, RUNNING, PAUSED, SUCCESS, FAILED, STOPPED;
+    public static enum Status {
+        PENDING,
+        RUNNING,
+        PAUSED,
+        SUCCESS,
+        FAILED,
+        STOPPED;
     }
-
-
+}

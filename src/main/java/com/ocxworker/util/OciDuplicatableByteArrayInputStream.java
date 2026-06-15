@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.util.OciDuplicatableByteArrayInputStream
- *  com.oracle.bmc.http.client.io.DuplicatableInputStream
- */
 package com.ocxworker.util;
 
 import com.oracle.bmc.http.client.io.DuplicatableInputStream;
@@ -12,14 +5,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public final class OciDuplicatableByteArrayInputStream
-extends InputStream
-implements DuplicatableInputStream {
+public final class OciDuplicatableByteArrayInputStream extends InputStream implements DuplicatableInputStream {
     private final byte[] bytes;
     private ByteArrayInputStream delegate;
 
     public OciDuplicatableByteArrayInputStream(byte[] bytes) {
-        this.bytes = bytes == null ? new byte[]{} : bytes;
+        this.bytes = bytes == null ? new byte[0] : bytes;
         this.delegate = new ByteArrayInputStream(this.bytes);
     }
 
@@ -52,4 +43,3 @@ implements DuplicatableInputStream {
         this.delegate.close();
     }
 }
-

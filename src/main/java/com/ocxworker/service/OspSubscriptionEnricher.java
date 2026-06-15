@@ -1,24 +1,8 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.StrUtil
- *  com.fasterxml.jackson.databind.JsonNode
- *  com.fasterxml.jackson.databind.ObjectMapper
- *  com.ocxworker.service.OspSubscriptionEnricher
- *  com.ocxworker.service.OspSubscriptionEnricher$ResolvedStatus
- *  com.oracle.bmc.ospgateway.SubscriptionServiceClient
- *  com.oracle.bmc.ospgateway.requests.GetSubscriptionRequest
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ocxworker.service.OspSubscriptionEnricher;
 import com.oracle.bmc.ospgateway.SubscriptionServiceClient;
 import com.oracle.bmc.ospgateway.requests.GetSubscriptionRequest;
 import java.time.Instant;
@@ -30,15 +14,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 final class OspSubscriptionEnricher {
     @Generated
     private static final Logger log = LoggerFactory.getLogger(OspSubscriptionEnricher.class);
@@ -48,408 +30,456 @@ final class OspSubscriptionEnricher {
     }
 
     static Object fetchSubscriptionDetail(SubscriptionServiceClient client, String ospHomeRegion, String compartmentId, String subscriptionId) {
-        if (client == null || StrUtil.isBlank((CharSequence)subscriptionId)) {
-            return null;
-        }
-        try {
-            return client.getSubscription(GetSubscriptionRequest.builder().subscriptionId(subscriptionId.trim()).ospHomeRegion(ospHomeRegion).compartmentId(compartmentId).build()).getSubscription();
-        }
-        catch (Exception e) {
-            log.warn("getSubscription failed for {}: {}", (Object)subscriptionId, (Object)e.getMessage());
+        if (client != null && !StrUtil.isBlank(subscriptionId)) {
+            try {
+                return client.getSubscription(
+                        GetSubscriptionRequest.builder()
+                            .subscriptionId(subscriptionId.trim())
+                            .ospHomeRegion(ospHomeRegion)
+                            .compartmentId(compartmentId)
+                            .build()
+                    )
+                    .getSubscription();
+            } catch (Exception var5) {
+                log.warn("getSubscription failed for {}: {}", subscriptionId, var5.getMessage());
+                return null;
+            }
+        } else {
             return null;
         }
     }
 
     static void enrichFromRawJson(JsonNode root, Map<String, Object> result) {
-        if (root == null || root.isNull() || result == null) {
-            return;
-        }
-        JsonNode sub = root;
-        if (!(sub.has("id") || sub.has("planType") || sub.has("timeStart"))) {
-            JsonNode inner = root.get("subscription");
-            if (inner != null && !inner.isNull()) {
-                sub = inner;
-            } else if (root.has("items") && root.get("items").isArray() && !root.get("items").isEmpty()) {
-                sub = root.get("items").get(0);
+        if (root != null && !root.isNull() && result != null) {
+            JsonNode sub = root;
+            if (!root.has("id") && !root.has("planType") && !root.has("timeStart")) {
+                JsonNode inner = root.get("subscription");
+                if (inner != null && !inner.isNull()) {
+                    sub = inner;
+                } else if (root.has("items") && root.get("items").isArray() && !root.get("items").isEmpty()) {
+                    sub = root.get("items").get(0);
+                }
             }
+
+            scanJsonNode(sub, result);
+            applySubscriptionIdentifiers(result, sub, null);
+            collectOspRewardSubscriptionOcids(sub, null, result);
+            reconcileAfterMerge(null, result);
         }
-        OspSubscriptionEnricher.scanJsonNode((JsonNode)sub, result);
-        OspSubscriptionEnricher.applySubscriptionIdentifiers(result, (JsonNode)sub, null);
-        OspSubscriptionEnricher.collectOspRewardSubscriptionOcids((JsonNode)sub, null, result);
-        OspSubscriptionEnricher.reconcileAfterMerge(null, result);
     }
 
     static boolean isOrganizationsSubscriptionOcid(String value) {
-        if (StrUtil.isBlank((CharSequence)value)) {
-            return false;
-        }
-        return value.trim().toLowerCase(Locale.ROOT).contains("organizationssubscription");
+        return StrUtil.isBlank(value) ? false : value.trim().toLowerCase(Locale.ROOT).contains("organizationssubscription");
     }
 
     static boolean isOciOcid(String value) {
-        if (StrUtil.isBlank((CharSequence)value)) {
-            return false;
-        }
-        return value.trim().toLowerCase(Locale.ROOT).startsWith("ocid1.");
+        return StrUtil.isBlank(value) ? false : value.trim().toLowerCase(Locale.ROOT).startsWith("ocid1.");
     }
 
     static void applySubscriptionIdentifiers(Map<String, Object> result, JsonNode sub, Object sdkObj) {
-        String planNum;
-        if (result == null) {
-            return;
-        }
-        String jsonId = sub != null && sub.hasNonNull("id") ? sub.get("id").asText() : null;
-        String string = planNum = sub != null && sub.hasNonNull("subscriptionPlanNumber") ? sub.get("subscriptionPlanNumber").asText() : null;
-        if (sdkObj != null) {
-            if (StrUtil.isBlank(planNum)) {
-                planNum = OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)sdkObj, (String)"getSubscriptionPlanNumber"));
+        if (result != null) {
+            String jsonId = sub != null && sub.hasNonNull("id") ? sub.get("id").asText() : null;
+            String planNum = sub != null && sub.hasNonNull("subscriptionPlanNumber") ? sub.get("subscriptionPlanNumber").asText() : null;
+            if (sdkObj != null) {
+                if (StrUtil.isBlank(planNum)) {
+                    planNum = asString(tryInvoke(sdkObj, "getSubscriptionPlanNumber"));
+                }
+
+                if (StrUtil.isBlank(jsonId)) {
+                    jsonId = asString(tryInvoke(sdkObj, "getId"));
+                }
             }
-            if (StrUtil.isBlank((CharSequence)jsonId)) {
-                jsonId = OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)sdkObj, (String)"getId"));
+
+            if (StrUtil.isNotBlank(planNum)) {
+                result.put("subscriptionPlanNumber", planNum.trim());
             }
-        }
-        if (StrUtil.isNotBlank(planNum)) {
-            result.put("subscriptionPlanNumber", planNum.trim());
-        }
-        if (StrUtil.isNotBlank((CharSequence)jsonId)) {
-            result.put("subscriptionOspRef", jsonId.trim());
-            if (OspSubscriptionEnricher.isOciOcid((String)jsonId) && !OspSubscriptionEnricher.isOrganizationsSubscriptionOcid((String)jsonId)) {
-                result.put("subscriptionOspOcid", jsonId.trim());
+
+            if (StrUtil.isNotBlank(jsonId)) {
+                result.put("subscriptionOspRef", jsonId.trim());
+                if (isOciOcid(jsonId) && !isOrganizationsSubscriptionOcid(jsonId)) {
+                    result.put("subscriptionOspOcid", jsonId.trim());
+                }
             }
         }
     }
 
     static void collectOspRewardSubscriptionOcids(JsonNode raw, Object sdkObj, Map<String, Object> result) {
-        if (result == null) {
-            return;
-        }
-        LinkedHashSet<String> ids = new LinkedHashSet<String>();
-        if (raw != null && !raw.isNull()) {
-            OspSubscriptionEnricher.collectOcidsFromJsonNode((JsonNode)raw, ids);
-        }
-        OspSubscriptionEnricher.collectOcidsFromSdkObject((Object)sdkObj, ids);
-        Object ospOcid = result.get("subscriptionOspOcid");
-        if (ospOcid != null && OspSubscriptionEnricher.isOciOcid((String)String.valueOf(ospOcid))) {
-            ids.add(String.valueOf(ospOcid).trim());
-        }
-        if (!ids.isEmpty()) {
-            result.put("ospRewardSubscriptionOcids", new ArrayList(ids));
+        if (result != null) {
+            LinkedHashSet<String> ids = new LinkedHashSet<>();
+            if (raw != null && !raw.isNull()) {
+                collectOcidsFromJsonNode(raw, ids);
+            }
+
+            collectOcidsFromSdkObject(sdkObj, ids);
+            Object ospOcid = result.get("subscriptionOspOcid");
+            if (ospOcid != null && isOciOcid(String.valueOf(ospOcid))) {
+                ids.add(String.valueOf(ospOcid).trim());
+            }
+
+            if (!ids.isEmpty()) {
+                result.put("ospRewardSubscriptionOcids", new ArrayList<>(ids));
+            }
         }
     }
 
     private static void collectOcidsFromJsonNode(JsonNode node, Set<String> ids) {
-        block6: {
-            block5: {
-                if (node == null || node.isNull()) {
-                    return;
+        if (node != null && !node.isNull()) {
+            if (node.isTextual()) {
+                String t = node.asText();
+                if (isOciOcid(t) && !isOrganizationsSubscriptionOcid(t)) {
+                    ids.add(t.trim());
                 }
-                if (node.isTextual()) {
-                    String t = node.asText();
-                    if (OspSubscriptionEnricher.isOciOcid((String)t) && !OspSubscriptionEnricher.isOrganizationsSubscriptionOcid((String)t)) {
-                        ids.add(t.trim());
+            } else {
+                if (node.isObject()) {
+                    for (Entry<String, JsonNode> entry : node.properties()) {
+                        collectOcidsFromJsonNode(entry.getValue(), ids);
                     }
-                    return;
+                } else if (node.isArray()) {
+                    for (JsonNode child : node) {
+                        collectOcidsFromJsonNode(child, ids);
+                    }
                 }
-                if (!node.isObject()) break block5;
-                for (Map.Entry entry : node.properties()) {
-                    OspSubscriptionEnricher.collectOcidsFromJsonNode((JsonNode)((JsonNode)entry.getValue()), ids);
-                }
-                break block6;
-            }
-            if (!node.isArray()) break block6;
-            for (JsonNode child : node) {
-                OspSubscriptionEnricher.collectOcidsFromJsonNode((JsonNode)child, ids);
             }
         }
     }
 
     private static void collectOcidsFromSdkObject(Object sdkObj, Set<String> ids) {
-        if (sdkObj == null) {
-            return;
-        }
-        for (String getter : List.of("getId", "getSubscriptionId", "getClassicSubscriptionId", "getBillingSubscriptionId")) {
-            String v = OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)sdkObj, (String)getter));
-            if (!OspSubscriptionEnricher.isOciOcid((String)v) || OspSubscriptionEnricher.isOrganizationsSubscriptionOcid((String)v)) continue;
-            ids.add(v.trim());
+        if (sdkObj != null) {
+            for (String getter : List.of("getId", "getSubscriptionId", "getClassicSubscriptionId", "getBillingSubscriptionId")) {
+                String v = asString(tryInvoke(sdkObj, getter));
+                if (isOciOcid(v) && !isOrganizationsSubscriptionOcid(v)) {
+                    ids.add(v.trim());
+                }
+            }
         }
     }
 
     static void enrich(Object sub, Map<String, Object> result) {
-        if (sub == null || result == null) {
-            return;
-        }
-        String planVal = OspSubscriptionEnricher.enumValue((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getPlanType"));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"planType", (Object)planVal);
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"planTypeLabel", (Object)OspSubscriptionEnricher.labelPlanType((String)planVal));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"accountType", (Object)OspSubscriptionEnricher.enumValue((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getAccountType")));
-        String upgrade = OspSubscriptionEnricher.enumValue((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getUpgradeState"));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"upgradeState", (Object)upgrade);
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"upgradeStateLabel", (Object)OspSubscriptionEnricher.labelUpgradeState((String)upgrade));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"currencyCode", (Object)OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getCurrencyCode")));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"isIntentToPay", (Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getIsIntentToPay"));
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionStartTime", (Object)OspSubscriptionEnricher.formatInstant((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getTimeStart")));
-        Date timeEnd = OspSubscriptionEnricher.firstDate((Object)sub, (String[])new String[]{"getTimeEnd", "getTimeEnded", "getEndTime", "getSubscriptionEndTime", "getPromoEndTime"});
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionEndTime", (Object)OspSubscriptionEnricher.formatInstant((Object)timeEnd));
-        Integer durationDays = OspSubscriptionEnricher.durationDays((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getTimeStart"), (Date)timeEnd);
-        if (durationDays == null) {
-            Object dur = OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getDurationDays");
-            if (dur == null) {
-                dur = OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getDuration");
+        if (sub != null && result != null) {
+            String planVal = enumValue(tryInvoke(sub, "getPlanType"));
+            putIfAbsent(result, "planType", planVal);
+            putIfAbsent(result, "planTypeLabel", labelPlanType(planVal));
+            putIfAbsent(result, "accountType", enumValue(tryInvoke(sub, "getAccountType")));
+            String upgrade = enumValue(tryInvoke(sub, "getUpgradeState"));
+            putIfAbsent(result, "upgradeState", upgrade);
+            putIfAbsent(result, "upgradeStateLabel", labelUpgradeState(upgrade));
+            putIfAbsent(result, "currencyCode", asString(tryInvoke(sub, "getCurrencyCode")));
+            putIfAbsent(result, "isIntentToPay", tryInvoke(sub, "getIsIntentToPay"));
+            putIfAbsent(result, "subscriptionStartTime", formatInstant(tryInvoke(sub, "getTimeStart")));
+            Date timeEnd = firstDate(sub, "getTimeEnd", "getTimeEnded", "getEndTime", "getSubscriptionEndTime", "getPromoEndTime");
+            putIfAbsent(result, "subscriptionEndTime", formatInstant(timeEnd));
+            Integer durationDays = durationDays(tryInvoke(sub, "getTimeStart"), timeEnd);
+            if (durationDays == null) {
+                Object dur = tryInvoke(sub, "getDurationDays");
+                if (dur == null) {
+                    dur = tryInvoke(sub, "getDuration");
+                }
+
+                durationDays = parseInt(dur);
             }
-            durationDays = OspSubscriptionEnricher.parseInt((Object)dur);
+
+            putIfAbsent(result, "subscriptionDurationDays", durationDays);
+            String paymentMethod = resolvePaymentMethod(sub);
+            putIfAbsent(result, "paymentMethod", paymentMethod);
+            putIfAbsent(result, "paymentMethodLabel", labelPaymentMethod(paymentMethod));
+            Number amount = resolveSubscriptionAmount(sub);
+            putIfAbsent(result, "subscriptionAmount", amount);
+            String currency = asString(tryInvoke(sub, "getCurrencyCode"));
+            if (result.get("subscriptionAmountLabel") == null) {
+                putIfAbsent(result, "subscriptionAmountLabel", formatAmount(amount, currency));
+            }
+
+            String rawStatus = firstString(sub, "getStatus", "getSubscriptionStatus", "getLifecycleState", "getState");
+            if (result.get("subscriptionStatus") == null) {
+                OspSubscriptionEnricher.ResolvedStatus resolved = resolveSubscriptionStatus(rawStatus, timeEnd);
+                putIfAbsent(result, "subscriptionStatus", resolved.code());
+                putIfAbsent(result, "subscriptionStatusLabel", resolved.label());
+            }
+
+            mergeFromJsonTree(sub, result);
+
+            try {
+                applySubscriptionIdentifiers(result, JSON.valueToTree(sub), sub);
+                collectOspRewardSubscriptionOcids(JSON.valueToTree(sub), sub, result);
+            } catch (Exception var11) {
+                applySubscriptionIdentifiers(result, null, sub);
+                collectOspRewardSubscriptionOcids(null, sub, result);
+            }
+
+            reconcileAfterMerge(sub, result);
         }
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionDurationDays", (Object)durationDays);
-        String paymentMethod = OspSubscriptionEnricher.resolvePaymentMethod((Object)sub);
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"paymentMethod", (Object)paymentMethod);
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"paymentMethodLabel", (Object)OspSubscriptionEnricher.labelPaymentMethod((String)paymentMethod));
-        Number amount = OspSubscriptionEnricher.resolveSubscriptionAmount((Object)sub);
-        OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionAmount", (Object)amount);
-        String currency = OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getCurrencyCode"));
-        if (result.get("subscriptionAmountLabel") == null) {
-            OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionAmountLabel", (Object)OspSubscriptionEnricher.formatAmount((Number)amount, (String)currency));
-        }
-        String rawStatus = OspSubscriptionEnricher.firstString((Object)sub, (String[])new String[]{"getStatus", "getSubscriptionStatus", "getLifecycleState", "getState"});
-        if (result.get("subscriptionStatus") == null) {
-            ResolvedStatus resolved = OspSubscriptionEnricher.resolveSubscriptionStatus((String)rawStatus, (Date)timeEnd);
-            OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionStatus", (Object)resolved.code());
-            OspSubscriptionEnricher.putIfAbsent(result, (String)"subscriptionStatusLabel", (Object)resolved.label());
-        }
-        OspSubscriptionEnricher.mergeFromJsonTree((Object)sub, result);
-        try {
-            OspSubscriptionEnricher.applySubscriptionIdentifiers(result, (JsonNode)JSON.valueToTree(sub), (Object)sub);
-            OspSubscriptionEnricher.collectOspRewardSubscriptionOcids((JsonNode)JSON.valueToTree(sub), (Object)sub, result);
-        }
-        catch (Exception ignored) {
-            OspSubscriptionEnricher.applySubscriptionIdentifiers(result, null, (Object)sub);
-            OspSubscriptionEnricher.collectOspRewardSubscriptionOcids(null, (Object)sub, result);
-        }
-        OspSubscriptionEnricher.reconcileAfterMerge((Object)sub, result);
     }
 
     private static void putIfAbsent(Map<String, Object> result, String key, Object value) {
-        String s;
-        if (value == null || result == null) {
-            return;
+        if (value != null && result != null) {
+            if (value instanceof String s && StrUtil.isBlank(s)) {
+                return;
+            }
+
+            result.putIfAbsent(key, value);
         }
-        if (value instanceof String && StrUtil.isBlank((CharSequence)(s = (String)value))) {
-            return;
-        }
-        result.putIfAbsent(key, value);
     }
 
     private static void reconcileAfterMerge(Object sub, Map<String, Object> result) {
-        ResolvedStatus resolved;
-        String pm;
-        String status;
-        Date end = OspSubscriptionEnricher.parseIsoDate((String)OspSubscriptionEnricher.asString((Object)result.get("subscriptionEndTime")));
+        Date end = parseIsoDate(asString(result.get("subscriptionEndTime")));
         if (end != null && result.get("subscriptionDurationDays") == null) {
-            Integer d;
-            Date start = OspSubscriptionEnricher.parseIsoDate((String)OspSubscriptionEnricher.asString((Object)result.get("subscriptionStartTime")));
+            Date start = parseIsoDate(asString(result.get("subscriptionStartTime")));
             if (start == null && sub != null) {
-                start = OspSubscriptionEnricher.asDate((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getTimeStart"));
+                start = asDate(tryInvoke(sub, "getTimeStart"));
             }
-            if ((d = OspSubscriptionEnricher.durationDays((Date)start, (Date)end)) != null) {
+
+            Integer d = durationDays(start, end);
+            if (d != null) {
                 result.putIfAbsent("subscriptionDurationDays", d);
             }
         }
-        if (StrUtil.isNotBlank((CharSequence)(status = OspSubscriptionEnricher.asString((Object)result.get("subscriptionStatus")))) && result.get("subscriptionStatusLabel") == null) {
-            result.put("subscriptionStatusLabel", OspSubscriptionEnricher.labelSubscriptionStatus((String)status));
+
+        String status = asString(result.get("subscriptionStatus"));
+        if (StrUtil.isNotBlank(status) && result.get("subscriptionStatusLabel") == null) {
+            result.put("subscriptionStatusLabel", labelSubscriptionStatus(status));
         }
-        if (StrUtil.isNotBlank((CharSequence)(pm = OspSubscriptionEnricher.asString((Object)result.get("paymentMethod")))) && result.get("paymentMethodLabel") == null) {
-            result.put("paymentMethodLabel", OspSubscriptionEnricher.labelPaymentMethod((String)pm));
+
+        String pm = asString(result.get("paymentMethod"));
+        if (StrUtil.isNotBlank(pm) && result.get("paymentMethodLabel") == null) {
+            result.put("paymentMethodLabel", labelPaymentMethod(pm));
         }
+
         Number amt = null;
         Object amountObj = result.get("subscriptionAmount");
         if (amountObj instanceof Number) {
             amt = (Number)amountObj;
         }
+
         if (amt != null && result.get("subscriptionAmountLabel") == null) {
-            result.put("subscriptionAmountLabel", OspSubscriptionEnricher.formatAmount((Number)amt, (String)OspSubscriptionEnricher.asString((Object)result.get("currencyCode"))));
+            result.put("subscriptionAmountLabel", formatAmount(amt, asString(result.get("currencyCode"))));
         }
-        if (StrUtil.isBlank((CharSequence)status) && (resolved = OspSubscriptionEnricher.resolveSubscriptionStatus(null, (Date)end)).code() != null) {
-            result.putIfAbsent("subscriptionStatus", resolved.code());
-            result.putIfAbsent("subscriptionStatusLabel", resolved.label());
+
+        if (StrUtil.isBlank(status)) {
+            OspSubscriptionEnricher.ResolvedStatus resolved = resolveSubscriptionStatus(null, end);
+            if (resolved.code() != null) {
+                result.putIfAbsent("subscriptionStatus", resolved.code());
+                result.putIfAbsent("subscriptionStatusLabel", resolved.label());
+            }
         }
     }
 
     private static String resolvePaymentMethod(Object sub) {
-        String pm;
-        Object gateway;
-        List opts = OspSubscriptionEnricher.asList((Object)OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getPaymentOptions"));
+        List<?> opts = asList(tryInvoke(sub, "getPaymentOptions"));
         if (opts != null) {
             for (Object opt : opts) {
-                String pm2 = OspSubscriptionEnricher.enumValue((Object)OspSubscriptionEnricher.tryInvoke(opt, (String)"getPaymentMethod"));
-                if (StrUtil.isBlank((CharSequence)pm2) && opt != null) {
+                String pm = enumValue(tryInvoke(opt, "getPaymentMethod"));
+                if (StrUtil.isBlank(pm) && opt != null) {
                     String simple = opt.getClass().getSimpleName();
                     if (simple.contains("FreeTrial")) {
-                        pm2 = "FREE_TRIAL";
+                        pm = "FREE_TRIAL";
                     } else if (simple.contains("CreditCard")) {
-                        pm2 = "CREDIT_CARD";
+                        pm = "CREDIT_CARD";
                     } else if (simple.contains("Paypal")) {
-                        pm2 = "PAYPAL";
+                        pm = "PAYPAL";
                     }
                 }
-                if (!StrUtil.isNotBlank((CharSequence)pm2)) continue;
-                return pm2;
+
+                if (StrUtil.isNotBlank(pm)) {
+                    return pm;
+                }
             }
         }
-        if ((gateway = OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getPaymentGateway")) != null && StrUtil.isNotBlank((CharSequence)(pm = OspSubscriptionEnricher.firstString((Object)gateway, (String[])new String[]{"getPaymentMethod", "getType", "getGatewayType"})))) {
-            return pm;
+
+        Object gateway = tryInvoke(sub, "getPaymentGateway");
+        if (gateway != null) {
+            String pmx = firstString(gateway, "getPaymentMethod", "getType", "getGatewayType");
+            if (StrUtil.isNotBlank(pmx)) {
+                return pmx;
+            }
         }
+
         return null;
     }
 
     private static Number resolveSubscriptionAmount(Object sub) {
-        Number n = OspSubscriptionEnricher.firstNumber((Object)sub, (String[])new String[]{"getSubscriptionAmount", "getPromoAmount", "getPromotionalCreditAmount", "getTotalAmount", "getContractValue", "getListPrice", "getAmount", "getCreditAmount"});
+        Number n = firstNumber(
+            sub,
+            "getSubscriptionAmount",
+            "getPromoAmount",
+            "getPromotionalCreditAmount",
+            "getTotalAmount",
+            "getContractValue",
+            "getListPrice",
+            "getAmount",
+            "getCreditAmount"
+        );
         if (n != null) {
             return n;
+        } else {
+            Object gateway = tryInvoke(sub, "getPaymentGateway");
+            if (gateway != null) {
+                n = firstNumber(gateway, "getAmount", "getTotalAmount", "getSubscriptionAmount");
+                if (n != null) {
+                    return n;
+                }
+            }
+
+            return null;
         }
-        Object gateway = OspSubscriptionEnricher.tryInvoke((Object)sub, (String)"getPaymentGateway");
-        if (gateway != null && (n = OspSubscriptionEnricher.firstNumber((Object)gateway, (String[])new String[]{"getAmount", "getTotalAmount", "getSubscriptionAmount"})) != null) {
-            return n;
-        }
-        return null;
     }
 
-    private static ResolvedStatus resolveSubscriptionStatus(String rawStatus, Date timeEnd) {
-        if (StrUtil.isNotBlank((CharSequence)rawStatus)) {
-            return new ResolvedStatus(rawStatus.toUpperCase(Locale.ROOT), OspSubscriptionEnricher.labelSubscriptionStatus((String)rawStatus));
+    private static OspSubscriptionEnricher.ResolvedStatus resolveSubscriptionStatus(String rawStatus, Date timeEnd) {
+        if (StrUtil.isNotBlank(rawStatus)) {
+            return new OspSubscriptionEnricher.ResolvedStatus(rawStatus.toUpperCase(Locale.ROOT), labelSubscriptionStatus(rawStatus));
+        } else if (timeEnd != null) {
+            return timeEnd.toInstant().isBefore(Instant.now())
+                ? new OspSubscriptionEnricher.ResolvedStatus("EXPIRED", "已过期")
+                : new OspSubscriptionEnricher.ResolvedStatus("ACTIVE", "有效");
+        } else {
+            return new OspSubscriptionEnricher.ResolvedStatus(null, null);
         }
-        if (timeEnd != null) {
-            if (timeEnd.toInstant().isBefore(Instant.now())) {
-                return new ResolvedStatus("EXPIRED", "\u5df2\u8fc7\u671f");
-            }
-            return new ResolvedStatus("ACTIVE", "\u6709\u6548");
-        }
-        return new ResolvedStatus(null, null);
     }
 
     static String labelSubscriptionStatus(String status) {
-        if (StrUtil.isBlank((CharSequence)status)) {
+        if (StrUtil.isBlank(status)) {
             return null;
+        } else {
+            String var1 = status.toUpperCase(Locale.ROOT);
+
+            return switch (var1) {
+                case "ACTIVE" -> "有效";
+                case "EXPIRED" -> "已过期";
+                case "INACTIVE" -> "未激活";
+                case "PENDING" -> "处理中";
+                case "ERROR" -> "异常";
+                default -> status;
+            };
         }
-        return switch (status.toUpperCase(Locale.ROOT)) {
-            case "ACTIVE" -> "\u6709\u6548";
-            case "EXPIRED" -> "\u5df2\u8fc7\u671f";
-            case "INACTIVE" -> "\u672a\u6fc0\u6d3b";
-            case "PENDING" -> "\u5904\u7406\u4e2d";
-            case "ERROR" -> "\u5f02\u5e38";
-            default -> status;
-        };
     }
 
     static String labelPaymentMethod(String method) {
-        if (StrUtil.isBlank((CharSequence)method)) {
+        if (StrUtil.isBlank(method)) {
             return null;
+        } else {
+            String var1 = method.toUpperCase(Locale.ROOT);
+
+            return switch (var1) {
+                case "FREE_TRIAL" -> "免费试用 (FREE_TRIAL)";
+                case "CREDIT_CARD" -> "信用卡";
+                case "PAYPAL" -> "PayPal";
+                default -> method;
+            };
         }
-        return switch (method.toUpperCase(Locale.ROOT)) {
-            case "FREE_TRIAL" -> "\u514d\u8d39\u8bd5\u7528 (FREE_TRIAL)";
-            case "CREDIT_CARD" -> "\u4fe1\u7528\u5361";
-            case "PAYPAL" -> "PayPal";
-            default -> method;
-        };
     }
 
     static String labelUpgradeState(String upgrade) {
-        if (StrUtil.isBlank((CharSequence)upgrade)) {
+        if (StrUtil.isBlank(upgrade)) {
             return null;
+        } else {
+            String var1 = upgrade.toUpperCase(Locale.ROOT);
+
+            return switch (var1) {
+                case "PROMO" -> "促销/试用";
+                case "SUBMITTED" -> "已提交";
+                case "ERROR" -> "错误";
+                case "UPGRADED" -> "已升级";
+                case "UPGRADE_PENDING" -> "升级待处理";
+                case "UPGRADE_COMPLETE" -> "升级完成";
+                case "UPGRADE_FAILED" -> "升级失败";
+                default -> upgrade;
+            };
         }
-        return switch (upgrade.toUpperCase(Locale.ROOT)) {
-            case "PROMO" -> "\u4fc3\u9500/\u8bd5\u7528";
-            case "SUBMITTED" -> "\u5df2\u63d0\u4ea4";
-            case "ERROR" -> "\u9519\u8bef";
-            case "UPGRADED" -> "\u5df2\u5347\u7ea7";
-            case "UPGRADE_PENDING" -> "\u5347\u7ea7\u5f85\u5904\u7406";
-            case "UPGRADE_COMPLETE" -> "\u5347\u7ea7\u5b8c\u6210";
-            case "UPGRADE_FAILED" -> "\u5347\u7ea7\u5931\u8d25";
-            default -> upgrade;
-        };
     }
 
     static String labelPlanType(String plan) {
-        if (StrUtil.isBlank((CharSequence)plan)) {
+        if (StrUtil.isBlank(plan)) {
             return null;
+        } else if (isFreeTierPlan(plan)) {
+            return "免费套餐 (Free Tier)";
+        } else {
+            String var1 = plan.toUpperCase(Locale.ROOT);
+            byte var2 = -1;
+            switch (var1.hashCode()) {
+                case 2448575:
+                    if (var1.equals("PAYG")) {
+                        var2 = 0;
+                    }
+                default:
+                    return switch (var2) {
+                        case 0 -> "按量付费 (PAYG)";
+                        default -> plan;
+                    };
+            }
         }
-        if (OspSubscriptionEnricher.isFreeTierPlan((String)plan)) {
-            return "\u514d\u8d39\u5957\u9910 (Free Tier)";
-        }
-        return switch (plan.toUpperCase(Locale.ROOT)) {
-            case "PAYG" -> "\u6309\u91cf\u4ed8\u8d39 (PAYG)";
-            default -> plan;
-        };
     }
 
     private static boolean isFreeTierPlan(String plan) {
-        if (StrUtil.isBlank((CharSequence)plan)) {
+        if (StrUtil.isBlank(plan)) {
             return false;
+        } else {
+            String p = plan.toUpperCase(Locale.ROOT).replace("_", "").replace("-", "");
+            return "FREE".equals(p) || "FREETIER".equals(p);
         }
-        String p = plan.toUpperCase(Locale.ROOT).replace("_", "").replace("-", "");
-        return "FREE".equals(p) || "FREETIER".equals(p);
     }
 
     private static void mergeFromJsonTree(Object sub, Map<String, Object> result) {
         try {
             JsonNode root = JSON.valueToTree(sub);
-            OspSubscriptionEnricher.scanJsonNode((JsonNode)root, result);
-        }
-        catch (Exception e) {
-            log.debug("subscription json scan skipped: {}", (Object)e.getMessage());
+            scanJsonNode(root, result);
+        } catch (Exception var3) {
+            log.debug("subscription json scan skipped: {}", var3.getMessage());
         }
     }
 
     private static void scanJsonNode(JsonNode node, Map<String, Object> result) {
-        block28: {
-            block27: {
-                if (node == null || node.isNull()) {
-                    return;
-                }
-                if (!node.isObject()) break block27;
-                for (Map.Entry e : node.properties()) {
-                    String key = (String)e.getKey();
-                    JsonNode val = (JsonNode)e.getValue();
+        if (node != null && !node.isNull()) {
+            if (node.isObject()) {
+                for (Entry<String, JsonNode> e : node.properties()) {
+                    String key = e.getKey();
+                    JsonNode val = e.getValue();
                     String lower = key.toLowerCase(Locale.ROOT);
-                    if (OspSubscriptionEnricher.matchesEndKey((String)lower)) {
-                        OspSubscriptionEnricher.putEndIfAbsent(result, (JsonNode)val);
-                    } else if (OspSubscriptionEnricher.matchesStartKey((String)lower)) {
-                        OspSubscriptionEnricher.putStartIfAbsent(result, (JsonNode)val);
+                    if (matchesEndKey(lower)) {
+                        putEndIfAbsent(result, val);
+                    } else if (matchesStartKey(lower)) {
+                        putStartIfAbsent(result, val);
                     } else if (lower.equals("subscriptionplannumber")) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"subscriptionPlanNumber", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
+                        putStringIfAbsent(result, "subscriptionPlanNumber", textNode(val));
                     } else if (lower.equals("plantype")) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"planType", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"planTypeLabel", (String)OspSubscriptionEnricher.labelPlanType((String)OspSubscriptionEnricher.textNode((JsonNode)val)));
+                        putStringIfAbsent(result, "planType", textNode(val));
+                        putStringIfAbsent(result, "planTypeLabel", labelPlanType(textNode(val)));
                     } else if (lower.equals("upgradestate")) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"upgradeState", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"upgradeStateLabel", (String)OspSubscriptionEnricher.labelUpgradeState((String)OspSubscriptionEnricher.textNode((JsonNode)val)));
+                        putStringIfAbsent(result, "upgradeState", textNode(val));
+                        putStringIfAbsent(result, "upgradeStateLabel", labelUpgradeState(textNode(val)));
                     } else if (lower.contains("paymentmethod") || "paymenttype".equals(lower)) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"paymentMethod", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
-                    } else if (OspSubscriptionEnricher.isSubscriptionStatusKey((String)lower)) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"subscriptionStatus", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
-                    } else if (OspSubscriptionEnricher.isAmountKey((String)lower)) {
-                        OspSubscriptionEnricher.putAmountIfAbsent(result, (JsonNode)val);
+                        putStringIfAbsent(result, "paymentMethod", textNode(val));
+                    } else if (isSubscriptionStatusKey(lower)) {
+                        putStringIfAbsent(result, "subscriptionStatus", textNode(val));
+                    } else if (isAmountKey(lower)) {
+                        putAmountIfAbsent(result, val);
                     } else if (lower.contains("duration")) {
-                        OspSubscriptionEnricher.putDurationIfAbsent(result, (JsonNode)val);
+                        putDurationIfAbsent(result, val);
                     } else if (lower.equals("currencycode")) {
-                        OspSubscriptionEnricher.putStringIfAbsent(result, (String)"currencyCode", (String)OspSubscriptionEnricher.textNode((JsonNode)val));
+                        putStringIfAbsent(result, "currencyCode", textNode(val));
                     } else if (lower.equals("isintenttopay")) {
                         if (val.isBoolean()) {
                             result.putIfAbsent("isIntentToPay", val.asBoolean());
                         }
                     } else if (lower.contains("renew") && lower.contains("time")) {
-                        OspSubscriptionEnricher.putEndIfAbsent(result, (JsonNode)val, (String)"subscriptionRenewTime");
+                        putEndIfAbsent(result, val, "subscriptionRenewTime");
                     }
-                    OspSubscriptionEnricher.scanJsonNode((JsonNode)val, result);
+
+                    scanJsonNode(val, result);
                 }
-                break block28;
-            }
-            if (!node.isArray()) break block28;
-            for (JsonNode child : node) {
-                OspSubscriptionEnricher.scanJsonNode((JsonNode)child, result);
+            } else if (node.isArray()) {
+                for (JsonNode child : node) {
+                    scanJsonNode(child, result);
+                }
             }
         }
     }
 
     private static boolean matchesEndKey(String lower) {
-        return lower.equals("timeend") || lower.equals("endtime") || lower.equals("timeended") || lower.contains("subscriptionend") || lower.contains("promoend") || lower.contains("end") && lower.contains("time") && !lower.contains("renew");
+        return lower.equals("timeend")
+            || lower.equals("endtime")
+            || lower.equals("timeended")
+            || lower.contains("subscriptionend")
+            || lower.contains("promoend")
+            || lower.contains("end") && lower.contains("time") && !lower.contains("renew");
     }
 
     private static boolean matchesStartKey(String lower) {
@@ -457,232 +487,222 @@ final class OspSubscriptionEnricher {
     }
 
     private static boolean isSubscriptionStatusKey(String lower) {
-        if (lower.contains("upgrade")) {
-            return false;
-        }
-        return lower.equals("status") || lower.equals("subscriptionstatus") || lower.equals("lifecyclestate") || lower.equals("state");
+        return lower.contains("upgrade")
+            ? false
+            : lower.equals("status") || lower.equals("subscriptionstatus") || lower.equals("lifecyclestate") || lower.equals("state");
     }
 
     private static void putStartIfAbsent(Map<String, Object> result, JsonNode val) {
-        if (result.get("subscriptionStartTime") != null) {
-            return;
-        }
-        String iso = OspSubscriptionEnricher.parseDateIso((JsonNode)val);
-        if (iso != null) {
-            result.put("subscriptionStartTime", iso);
+        if (result.get("subscriptionStartTime") == null) {
+            String iso = parseDateIso(val);
+            if (iso != null) {
+                result.put("subscriptionStartTime", iso);
+            }
         }
     }
 
     private static void putDurationIfAbsent(Map<String, Object> result, JsonNode val) {
-        Integer days;
-        if (result.get("subscriptionDurationDays") != null) {
-            return;
-        }
-        if (val.isNumber()) {
-            result.put("subscriptionDurationDays", val.asInt());
-            return;
-        }
-        String text = OspSubscriptionEnricher.textNode((JsonNode)val);
-        if (StrUtil.isNotBlank((CharSequence)text) && (days = OspSubscriptionEnricher.parseDurationDaysFromApiText((String)text)) != null) {
-            result.put("subscriptionDurationDays", days);
+        if (result.get("subscriptionDurationDays") == null) {
+            if (val.isNumber()) {
+                result.put("subscriptionDurationDays", val.asInt());
+            } else {
+                String text = textNode(val);
+                if (StrUtil.isNotBlank(text)) {
+                    Integer days = parseDurationDaysFromApiText(text);
+                    if (days != null) {
+                        result.put("subscriptionDurationDays", days);
+                    }
+                }
+            }
         }
     }
 
     private static Integer parseDurationDaysFromApiText(String text) {
-        if (StrUtil.isBlank((CharSequence)text)) {
+        if (StrUtil.isBlank(text)) {
             return null;
+        } else {
+            String t = text.trim().toUpperCase(Locale.ROOT);
+            Matcher m = Pattern.compile("(\\d+)\\s*DAY").matcher(t);
+            return m.find() ? Integer.parseInt(m.group(1)) : parseInt(text);
         }
-        String t = text.trim().toUpperCase(Locale.ROOT);
-        Matcher m = Pattern.compile("(\\d+)\\s*DAY").matcher(t);
-        if (m.find()) {
-            return Integer.parseInt(m.group(1));
-        }
-        return OspSubscriptionEnricher.parseInt((Object)text);
     }
 
     private static void putEndIfAbsent(Map<String, Object> result, JsonNode val, String targetKey) {
-        if (result.get(targetKey) != null) {
-            return;
-        }
-        String iso = OspSubscriptionEnricher.parseDateIso((JsonNode)val);
-        if (iso != null) {
-            result.put(targetKey, iso);
+        if (result.get(targetKey) == null) {
+            String iso = parseDateIso(val);
+            if (iso != null) {
+                result.put(targetKey, iso);
+            }
         }
     }
 
     private static boolean isAmountKey(String lower) {
-        return lower.contains("subscriptionamount") || lower.contains("promoamount") || lower.contains("promotionalcredit") || lower.equals("totalamount") || lower.contains("amount") && !lower.contains("discount");
+        return lower.contains("subscriptionamount")
+            || lower.contains("promoamount")
+            || lower.contains("promotionalcredit")
+            || lower.equals("totalamount")
+            || lower.contains("amount") && !lower.contains("discount");
     }
 
     private static void putEndIfAbsent(Map<String, Object> result, JsonNode val) {
-        if (result.get("subscriptionEndTime") != null) {
-            return;
-        }
-        String iso = OspSubscriptionEnricher.parseDateIso((JsonNode)val);
-        if (iso != null) {
-            result.put("subscriptionEndTime", iso);
+        if (result.get("subscriptionEndTime") == null) {
+            String iso = parseDateIso(val);
+            if (iso != null) {
+                result.put("subscriptionEndTime", iso);
+            }
         }
     }
 
     private static void putAmountIfAbsent(Map<String, Object> result, JsonNode val) {
-        if (result.get("subscriptionAmount") != null) {
-            return;
-        }
-        if (val.isNumber()) {
-            result.put("subscriptionAmount", val.numberValue());
-            String cur = OspSubscriptionEnricher.asString((Object)result.get("currencyCode"));
-            result.put("subscriptionAmountLabel", OspSubscriptionEnricher.formatAmount((Number)val.numberValue(), (String)cur));
+        if (result.get("subscriptionAmount") == null) {
+            if (val.isNumber()) {
+                result.put("subscriptionAmount", val.numberValue());
+                String cur = asString(result.get("currencyCode"));
+                result.put("subscriptionAmountLabel", formatAmount(val.numberValue(), cur));
+            }
         }
     }
 
     private static void putStringIfAbsent(Map<String, Object> result, String key, String val) {
-        if (StrUtil.isBlank((CharSequence)val) || result.get(key) != null) {
-            return;
-        }
-        result.put(key, val);
-        if ("paymentMethod".equals(key)) {
-            result.put("paymentMethodLabel", OspSubscriptionEnricher.labelPaymentMethod((String)val));
-        }
-        if ("subscriptionStatus".equals(key)) {
-            result.put("subscriptionStatusLabel", OspSubscriptionEnricher.labelSubscriptionStatus((String)val));
+        if (!StrUtil.isBlank(val) && result.get(key) == null) {
+            result.put(key, val);
+            if ("paymentMethod".equals(key)) {
+                result.put("paymentMethodLabel", labelPaymentMethod(val));
+            }
+
+            if ("subscriptionStatus".equals(key)) {
+                result.put("subscriptionStatusLabel", labelSubscriptionStatus(val));
+            }
         }
     }
 
     private static String textNode(JsonNode val) {
         if (val == null || val.isNull()) {
             return null;
-        }
-        if (val.isTextual()) {
+        } else if (val.isTextual()) {
             return val.asText();
+        } else {
+            return val.isNumber() ? val.asText() : null;
         }
-        if (val.isNumber()) {
-            return val.asText();
-        }
-        return null;
     }
 
     private static String parseDateIso(JsonNode val) {
         if (val == null || val.isNull()) {
             return null;
-        }
-        if (val.isNumber()) {
-            return OspSubscriptionEnricher.formatInstant((Object)new Date(val.asLong()));
-        }
-        if (val.isTextual()) {
+        } else if (val.isNumber()) {
+            return formatInstant(new Date(val.asLong()));
+        } else if (val.isTextual()) {
             try {
                 return Instant.parse(val.asText()).toString();
-            }
-            catch (Exception ignored) {
+            } catch (Exception var2) {
                 return val.asText();
             }
+        } else {
+            return null;
         }
-        return null;
     }
 
     private static Date parseIsoDate(String iso) {
-        if (StrUtil.isBlank((CharSequence)iso)) {
+        if (StrUtil.isBlank(iso)) {
             return null;
-        }
-        try {
-            return Date.from(Instant.parse(iso));
-        }
-        catch (Exception ignored) {
-            return null;
+        } else {
+            try {
+                return Date.from(Instant.parse(iso));
+            } catch (Exception var2) {
+                return null;
+            }
         }
     }
 
     private static String formatAmount(Number amount, String currency) {
         if (amount == null) {
             return null;
+        } else {
+            String cur = StrUtil.isNotBlank(currency) ? " " + currency.trim() : "";
+            return amount + cur;
         }
-        String cur = StrUtil.isNotBlank((CharSequence)currency) ? " " + currency.trim() : "";
-        return String.valueOf(amount) + cur;
     }
 
     private static Integer durationDays(Object startObj, Date end) {
-        Date start = OspSubscriptionEnricher.asDate((Object)startObj);
-        return OspSubscriptionEnricher.durationDays((Date)start, (Date)end);
+        Date start = asDate(startObj);
+        return durationDays(start, end);
     }
 
     private static Integer durationDays(Date start, Date end) {
-        if (start == null || end == null) {
+        if (start != null && end != null) {
+            long days = ChronoUnit.DAYS.between(start.toInstant(), end.toInstant());
+            return days >= 0L ? (int)days : null;
+        } else {
             return null;
         }
-        long days = ChronoUnit.DAYS.between(start.toInstant(), end.toInstant());
-        return days >= 0L ? Integer.valueOf((int)days) : null;
     }
 
-    private static Date firstDate(Object target, String ... getters) {
+    private static Date firstDate(Object target, String... getters) {
         for (String g : getters) {
-            Object v = OspSubscriptionEnricher.tryInvoke((Object)target, (String)g);
-            Date d = OspSubscriptionEnricher.asDate((Object)v);
-            if (d == null) continue;
-            return d;
+            Object v = tryInvoke(target, g);
+            Date d = asDate(v);
+            if (d != null) {
+                return d;
+            }
         }
+
         return null;
     }
 
-    private static String firstString(Object target, String ... getters) {
+    private static String firstString(Object target, String... getters) {
         for (String g : getters) {
-            String s = OspSubscriptionEnricher.asString((Object)OspSubscriptionEnricher.tryInvoke((Object)target, (String)g));
-            if (!StrUtil.isNotBlank((CharSequence)s)) continue;
-            return s;
+            String s = asString(tryInvoke(target, g));
+            if (StrUtil.isNotBlank(s)) {
+                return s;
+            }
         }
+
         return null;
     }
 
-    private static Number firstNumber(Object target, String ... getters) {
+    private static Number firstNumber(Object target, String... getters) {
         for (String g : getters) {
-            Object v = OspSubscriptionEnricher.tryInvoke((Object)target, (String)g);
-            if (!(v instanceof Number)) continue;
-            Number n = (Number)v;
-            return n;
+            Object v = tryInvoke(target, g);
+            if (v instanceof Number) {
+                return (Number)v;
+            }
         }
+
         return null;
     }
 
     private static Integer parseInt(Object v) {
-        if (v instanceof Number) {
-            Number n = (Number)v;
+        if (v instanceof Number n) {
             return n.intValue();
-        }
-        if (v == null) {
+        } else if (v == null) {
             return null;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(v).replaceAll("[^0-9]", ""));
-        }
-        catch (Exception ignored) {
-            return null;
+        } else {
+            try {
+                return Integer.parseInt(String.valueOf(v).replaceAll("[^0-9]", ""));
+            } catch (Exception var2) {
+                return null;
+            }
         }
     }
 
     private static String formatInstant(Object v) {
-        Date d = OspSubscriptionEnricher.asDate((Object)v);
+        Date d = asDate(v);
         return d == null ? null : d.toInstant().toString();
     }
 
     private static Date asDate(Object v) {
-        if (v instanceof Date) {
-            Date d = (Date)v;
-            return d;
-        }
-        return null;
+        return v instanceof Date ? (Date)v : null;
     }
 
     private static String enumValue(Object v) {
         if (v == null) {
             return null;
+        } else if (v instanceof Enum<?> e) {
+            Object val = tryInvoke(e, "getValue");
+            return val != null ? String.valueOf(val) : e.name();
+        } else {
+            return String.valueOf(v);
         }
-        if (v instanceof Enum) {
-            Enum e = (Enum)v;
-            Object val = OspSubscriptionEnricher.tryInvoke((Object)e, (String)"getValue");
-            if (val != null) {
-                return String.valueOf(val);
-            }
-            return e.name();
-        }
-        return String.valueOf(v);
     }
 
     private static String asString(Object v) {
@@ -690,23 +710,21 @@ final class OspSubscriptionEnricher {
     }
 
     private static List<?> asList(Object v) {
-        List l;
-        return v instanceof List ? (l = (List)v) : null;
+        return v instanceof List<?> l ? l : null;
     }
 
     private static Object tryInvoke(Object target, String method) {
         if (target == null) {
             return null;
-        }
-        try {
-            return target.getClass().getMethod(method, new Class[0]).invoke(target, new Object[0]);
-        }
-        catch (Exception ignored) {
-            return null;
+        } else {
+            try {
+                return target.getClass().getMethod(method).invoke(target);
+            } catch (Exception var3) {
+                return null;
+            }
         }
     }
+
+    private static record ResolvedStatus(String code, String label) {
+    }
 }
-
-    record ResolvedStatus(String code, String label) {}
-
-

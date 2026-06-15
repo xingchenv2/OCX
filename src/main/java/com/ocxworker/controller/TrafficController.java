@@ -1,16 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.controller.TrafficController
- *  com.ocxworker.model.vo.ResponseData
- *  com.ocxworker.service.TrafficService
- *  jakarta.annotation.Resource
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestBody
- *  org.springframework.web.bind.annotation.RequestMapping
- *  org.springframework.web.bind.annotation.RestController
- */
 package com.ocxworker.controller;
 
 import com.ocxworker.model.vo.ResponseData;
@@ -23,31 +10,35 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(value={"/api/oci/traffic"})
+@RequestMapping({"/api/oci/traffic"})
 public class TrafficController {
     @Resource
     private TrafficService trafficService;
 
-    @PostMapping(value={"/data"})
+    @PostMapping({"/data"})
     public ResponseData<?> getData(@RequestBody Map<String, Object> params) {
         Object minutesRaw = params == null ? null : params.get("minutes");
         int minutes = 60;
-        if (minutesRaw instanceof Number) {
-            Number n = (Number)minutesRaw;
+        if (minutesRaw instanceof Number n) {
             minutes = n.intValue();
         } else if (minutesRaw != null) {
             try {
                 minutes = Integer.parseInt(String.valueOf(minutesRaw));
-            }
-            catch (NumberFormatException numberFormatException) {
-                // empty catch block
+            } catch (NumberFormatException var6) {
             }
         }
+
         String reg = null;
-        if (params != null && params.get("region") != null && (reg = String.valueOf(params.get("region")).trim()).isEmpty()) {
-            reg = null;
+        if (params != null && params.get("region") != null) {
+            reg = String.valueOf(params.get("region")).trim();
+            if (reg.isEmpty()) {
+                reg = null;
+            }
         }
-        return ResponseData.ok((Object)this.trafficService.getTrafficData(params == null ? null : (String)params.get("id"), params == null ? null : (String)params.get("instanceId"), minutes, reg));
+
+        return ResponseData.ok(
+            this.trafficService
+                .getTrafficData(params == null ? null : (String)params.get("id"), params == null ? null : (String)params.get("instanceId"), minutes, reg)
+        );
     }
 }
-

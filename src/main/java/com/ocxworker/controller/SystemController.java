@@ -1,41 +1,8 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.StrUtil
- *  cn.hutool.crypto.digest.DigestUtil
- *  com.google.common.net.InetAddresses
- *  com.ocxworker.controller.AuthController
- *  com.ocxworker.controller.SystemController
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.model.dto.OciProxySnapshot
- *  com.ocxworker.model.vo.ResponseData
- *  com.ocxworker.service.BanlistViewSessionService
- *  com.ocxworker.service.LoginAuditService
- *  com.ocxworker.service.LoginAuditViewSessionService
- *  com.ocxworker.service.LoginSecurityService
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.OciProxyConfigService
- *  com.ocxworker.service.SystemService
- *  com.ocxworker.service.TgNotifyConfigRollbackService
- *  com.ocxworker.service.VerifyCodeService
- *  com.ocxworker.util.HttpRequestUtil
- *  jakarta.annotation.Resource
- *  jakarta.servlet.http.HttpServletRequest
- *  org.springframework.web.bind.annotation.GetMapping
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestBody
- *  org.springframework.web.bind.annotation.RequestHeader
- *  org.springframework.web.bind.annotation.RequestMapping
- *  org.springframework.web.bind.annotation.RequestParam
- *  org.springframework.web.bind.annotation.RestController
- */
 package com.ocxworker.controller;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.google.common.net.InetAddresses;
-import com.ocxworker.controller.AuthController;
 import com.ocxworker.enums.SysCfgEnum;
 import com.ocxworker.model.dto.OciProxySnapshot;
 import com.ocxworker.model.vo.ResponseData;
@@ -52,7 +19,6 @@ import com.ocxworker.util.HttpRequestUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -64,11 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @RestController
-@RequestMapping(value={"/api/sys"})
+@RequestMapping({"/api/sys"})
 public class SystemController {
     private static final Pattern DAILY_REPORT_TIME = Pattern.compile("^([01]\\d|2[0-3]):[0-5]\\d$");
     private static final String BANLIST_SESSION_HEADER = "X-Oci-Banlist-Session";
@@ -94,19 +57,19 @@ public class SystemController {
     @Resource
     private TgNotifyConfigRollbackService tgNotifyConfigRollbackService;
 
-    @GetMapping(value={"/glance"})
+    @GetMapping({"/glance"})
     public ResponseData<?> glance() {
-        return ResponseData.ok((Object)this.systemService.getGlance());
+        return ResponseData.ok(this.systemService.getGlance());
     }
 
-    @GetMapping(value={"/ociRegionOptions"})
-    public ResponseData<?> ociRegionOptions(@RequestParam(required=false) String userId) {
-        return ResponseData.ok((Object)this.systemService.listOciRegionCatalog(userId));
+    @GetMapping({"/ociRegionOptions"})
+    public ResponseData<?> ociRegionOptions(@RequestParam(required = false) String userId) {
+        return ResponseData.ok(this.systemService.listOciRegionCatalog(userId));
     }
 
-    @GetMapping(value={"/notifyConfig"})
+    @GetMapping({"/notifyConfig"})
     public ResponseData<?> getNotifyConfig() {
-        LinkedHashMap<String, Object> config = new LinkedHashMap<String, Object>();
+        Map<String, Object> config = new LinkedHashMap<>();
         String botToken = this.notificationService.getKvValue(SysCfgEnum.TG_BOT_TOKEN);
         String chatId = this.notificationService.getKvValue(SysCfgEnum.TG_CHAT_ID);
         config.put("botToken", this.maskSecret(botToken));
@@ -115,257 +78,282 @@ public class SystemController {
         config.put("chatIdConfigured", chatId != null && !chatId.isBlank());
         config.put("notifyTypes", this.notificationService.getKvValue(SysCfgEnum.TG_NOTIFY_TYPES));
         String dailyTime = this.notificationService.getKvValue(SysCfgEnum.TG_DAILY_REPORT_TIME);
-        config.put("dailyReportTime", dailyTime == null || dailyTime.isBlank() ? "09:00" : dailyTime.trim());
+        config.put("dailyReportTime", dailyTime != null && !dailyTime.isBlank() ? dailyTime.trim() : "09:00");
         config.put("tgInboundMode", "getUpdates");
-        config.put("tgUpdatesOffsetConfigured", StrUtil.isNotBlank((CharSequence)this.notificationService.getKvValue(SysCfgEnum.TG_UPDATES_NEXT_OFFSET)));
+        config.put("tgUpdatesOffsetConfigured", StrUtil.isNotBlank(this.notificationService.getKvValue(SysCfgEnum.TG_UPDATES_NEXT_OFFSET)));
         return ResponseData.ok(config);
     }
 
     private String maskSecret(String value) {
-        if (value == null || value.isBlank()) {
+        if (value != null && !value.isBlank()) {
+            int len = value.length();
+            if (len <= 4) {
+                return "****";
+            } else {
+                return len <= 10 ? value.substring(0, 2) + "****" + value.substring(len - 2) : value.substring(0, 4) + "********" + value.substring(len - 4);
+            }
+        } else {
             return "";
         }
-        int len = value.length();
-        if (len <= 4) {
-            return "****";
-        }
-        if (len <= 10) {
-            return value.substring(0, 2) + "****" + value.substring(len - 2);
-        }
-        return value.substring(0, 4) + "********" + value.substring(len - 4);
     }
 
-    @PostMapping(value={"/notifyConfig"})
+    @PostMapping({"/notifyConfig"})
     public ResponseData<?> saveNotifyConfig(@RequestBody Map<String, String> params, HttpServletRequest request) {
-        String t;
-        boolean identityRollback;
         String oldToken = this.notificationService.getKvValue(SysCfgEnum.TG_BOT_TOKEN);
         String oldChatId = this.notificationService.getKvValue(SysCfgEnum.TG_CHAT_ID);
-        boolean tokenWillChange = SystemController.willTgSecretChange((String)params.get("botToken"), (String)oldToken);
-        boolean chatWillChange = SystemController.willTgSecretChange((String)params.get("chatId"), (String)oldChatId);
+        boolean tokenWillChange = willTgSecretChange(params.get("botToken"), oldToken);
+        boolean chatWillChange = willTgSecretChange(params.get("chatId"), oldChatId);
         if (this.verifyCodeService.isTgConfigured()) {
             String code = params.get("verifyCode");
-            if (StrUtil.isBlank((CharSequence)code)) {
-                return ResponseData.error((String)"\u8bf7\u5148\u83b7\u53d6 Telegram \u9a8c\u8bc1\u7801");
+            if (StrUtil.isBlank(code)) {
+                return ResponseData.error("请先获取 Telegram 验证码");
             }
+
             this.verifyCodeService.verifyCode("notifyConfig", code);
         } else {
             String pwd = params.get("password");
-            if (StrUtil.isBlank((CharSequence)pwd)) {
-                return ResponseData.error((String)"\u8bf7\u8f93\u5165\u767b\u5f55\u5bc6\u7801\u8fdb\u884c\u9a8c\u8bc1");
+            if (StrUtil.isBlank(pwd)) {
+                return ResponseData.error("请输入登录密码进行验证");
             }
-            String inputHash = DigestUtil.sha256Hex((String)pwd);
+
+            String inputHash = DigestUtil.sha256Hex(pwd);
             if (!inputHash.equals(this.authController.getEffectivePasswordHash())) {
-                return ResponseData.error((String)"\u5bc6\u7801\u9519\u8bef");
+                return ResponseData.error("密码错误");
             }
         }
-        boolean bl = identityRollback = (tokenWillChange || chatWillChange) && StrUtil.isNotBlank((CharSequence)oldToken) && StrUtil.isNotBlank((CharSequence)oldChatId);
+
+        boolean identityRollback = (tokenWillChange || chatWillChange) && StrUtil.isNotBlank(oldToken) && StrUtil.isNotBlank(oldChatId);
         if (identityRollback) {
-            String ip = HttpRequestUtil.getClientIp((HttpServletRequest)request);
+            String ip = HttpRequestUtil.getClientIp(request);
             String deviceId = this.loginSecurityService.readDeviceIdFromRequest(request);
-            String newToken = SystemController.resolveIncomingSecret((String)params.get("botToken"), (String)oldToken);
-            String newChatId = SystemController.resolveIncomingSecret((String)params.get("chatId"), (String)oldChatId);
+            String newToken = resolveIncomingSecret(params.get("botToken"), oldToken);
+            String newChatId = resolveIncomingSecret(params.get("chatId"), oldChatId);
             this.tgNotifyConfigRollbackService.applyIdentityChange(oldToken.trim(), oldChatId.trim(), newToken, newChatId, ip, deviceId);
         } else {
-            String v;
-            if (params.containsKey("botToken") && (v = params.get("botToken")) != null && !v.contains("****")) {
-                this.notificationService.saveKvValue(SysCfgEnum.TG_BOT_TOKEN, v);
-                this.notificationService.resetTelegramUpdatesOffset();
+            if (params.containsKey("botToken")) {
+                String v = params.get("botToken");
+                if (v != null && !v.contains("****")) {
+                    this.notificationService.saveKvValue(SysCfgEnum.TG_BOT_TOKEN, v);
+                    this.notificationService.resetTelegramUpdatesOffset();
+                }
             }
-            if (params.containsKey("chatId") && (v = params.get("chatId")) != null && !v.contains("****")) {
-                this.notificationService.saveKvValue(SysCfgEnum.TG_CHAT_ID, v);
+
+            if (params.containsKey("chatId")) {
+                String v = params.get("chatId");
+                if (v != null && !v.contains("****")) {
+                    this.notificationService.saveKvValue(SysCfgEnum.TG_CHAT_ID, v);
+                }
             }
         }
+
         if (params.containsKey("notifyTypes")) {
             this.notificationService.saveKvValue(SysCfgEnum.TG_NOTIFY_TYPES, params.get("notifyTypes"));
         }
-        if (params.containsKey("dailyReportTime") && (t = params.get("dailyReportTime")) != null && !t.isBlank()) {
-            if (!DAILY_REPORT_TIME.matcher(t = t.trim()).matches()) {
-                return ResponseData.error((String)"\u6bcf\u65e5\u64ad\u62a5\u65f6\u95f4\u987b\u4e3a 24 \u5c0f\u65f6\u5236 HH:mm\uff08\u5982 09:00\u300114:30\uff09");
+
+        if (params.containsKey("dailyReportTime")) {
+            String t = params.get("dailyReportTime");
+            if (t != null && !t.isBlank()) {
+                t = t.trim();
+                if (!DAILY_REPORT_TIME.matcher(t).matches()) {
+                    return ResponseData.error("每日播报时间须为 24 小时制 HH:mm（如 09:00、14:30）");
+                }
+
+                this.notificationService.saveKvValue(SysCfgEnum.TG_DAILY_REPORT_TIME, t);
             }
-            this.notificationService.saveKvValue(SysCfgEnum.TG_DAILY_REPORT_TIME, t);
         }
+
         return ResponseData.ok();
     }
 
     private static String resolveIncomingSecret(String incoming, String current) {
-        if (incoming == null || incoming.contains("****")) {
-            return StrUtil.trimToEmpty((CharSequence)current);
-        }
-        return incoming.trim();
+        return incoming != null && !incoming.contains("****") ? incoming.trim() : StrUtil.trimToEmpty(current);
     }
 
     private static boolean willTgSecretChange(String incoming, String current) {
-        if (incoming == null || incoming.contains("****")) {
-            return false;
-        }
-        return !Objects.equals(StrUtil.trim((CharSequence)incoming), StrUtil.trimToEmpty((CharSequence)current));
+        return incoming != null && !incoming.contains("****") ? !Objects.equals(StrUtil.trim(incoming), StrUtil.trimToEmpty(current)) : false;
     }
 
-    @PostMapping(value={"/testNotify"})
+    @PostMapping({"/testNotify"})
     public ResponseData<?> testNotify() {
-        this.notificationService.sendMessage("\u3010\u6d4b\u8bd5\u901a\u77e5\u3011\ud83d\udd14 Telegram \u901a\u77e5\u914d\u7f6e\u6b63\u5e38\uff01");
+        this.notificationService.sendMessage("【测试通知】\ud83d\udd14 Telegram 通知配置正常！");
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sendVerifyCode"})
+    @PostMapping({"/sendVerifyCode"})
     public ResponseData<?> sendVerifyCode(@RequestBody Map<String, String> params) {
         this.verifyCodeService.sendCode(params.get("action"));
         return ResponseData.ok();
     }
 
-    @GetMapping(value={"/tgStatus"})
+    @GetMapping({"/tgStatus"})
     public ResponseData<?> tgStatus() {
         return ResponseData.ok(Map.of("configured", this.verifyCodeService.isTgConfigured()));
     }
 
-    @PostMapping(value={"/loginAudit/unlock"})
+    @PostMapping({"/loginAudit/unlock"})
     public ResponseData<?> loginAuditUnlock(@RequestBody Map<String, String> body) {
         this.verifyCodeService.verifyCode("loginAudit", body.get("verifyCode"));
         String sid = this.loginAuditViewSessionService.issue();
         return ResponseData.ok(Map.of("loginAuditSession", sid));
     }
 
-    @GetMapping(value={"/loginAudit"})
-    public ResponseData<?> loginAudit(@RequestHeader(value="X-Oci-Login-Audit-Session", required=false) String loginAuditSession, @RequestParam(defaultValue="1") long page, @RequestParam(defaultValue="20") long size) {
-        ResponseData gate = this.requireLoginAuditViewSession(loginAuditSession);
-        if (gate != null) {
-            return gate;
-        }
-        return ResponseData.ok((Object)this.loginAuditService.pageAudits(page, Math.min(size, 100L)));
+    @GetMapping({"/loginAudit"})
+    public ResponseData<?> loginAudit(
+        @RequestHeader(value = "X-Oci-Login-Audit-Session",required = false) String loginAuditSession,
+        @RequestParam(defaultValue = "1") long page,
+        @RequestParam(defaultValue = "20") long size
+    ) {
+        ResponseData<?> gate = this.requireLoginAuditViewSession(loginAuditSession);
+        return gate != null ? gate : ResponseData.ok(this.loginAuditService.pageAudits(page, Math.min(size, 100L)));
     }
 
-    @GetMapping(value={"/banlist"})
-    public ResponseData<?> banlist(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @GetMapping({"/banlist"})
+    public ResponseData<?> banlist(@RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
+        } else {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("ips", this.loginSecurityService.listBannedIps());
+            m.put("devices", this.loginSecurityService.listBannedDevices());
+            return ResponseData.ok(m);
         }
-        LinkedHashMap<String, List> m = new LinkedHashMap<String, List>();
-        m.put("ips", this.loginSecurityService.listBannedIps());
-        m.put("devices", this.loginSecurityService.listBannedDevices());
-        return ResponseData.ok(m);
     }
 
-    @PostMapping(value={"/banlist/unlock"})
+    @PostMapping({"/banlist/unlock"})
     public ResponseData<?> banlistUnlock(@RequestBody Map<String, String> body) {
         this.verifyCodeService.verifyCode("banlist", body.get("verifyCode"));
         String sid = this.banlistViewSessionService.issue();
         return ResponseData.ok(Map.of("banlistSession", sid));
     }
 
-    @PostMapping(value={"/banlist/add"})
-    public ResponseData<?> banlistAdd(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession, @RequestBody Map<String, String> body) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @PostMapping({"/banlist/add"})
+    public ResponseData<?> banlistAdd(
+        @RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession, @RequestBody Map<String, String> body
+    ) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
-        }
-        String value = StrUtil.trimToNull((CharSequence)body.get("value"));
-        if (value == null) {
-            return ResponseData.error((String)"\u8bf7\u8f93\u5165 IP \u6216\u8bbe\u5907\u7801");
-        }
-        if (InetAddresses.isInetAddress((String)value)) {
-            this.loginSecurityService.addIpToDenylist(value);
         } else {
-            this.loginSecurityService.addDeviceToDenylist(value);
+            String value = StrUtil.trimToNull(body.get("value"));
+            if (value == null) {
+                return ResponseData.error("请输入 IP 或设备码");
+            } else {
+                if (InetAddresses.isInetAddress(value)) {
+                    this.loginSecurityService.addIpToDenylist(value);
+                } else {
+                    this.loginSecurityService.addDeviceToDenylist(value);
+                }
+
+                return ResponseData.ok();
+            }
         }
-        return ResponseData.ok();
     }
 
-    @PostMapping(value={"/banlist/addIp"})
-    public ResponseData<?> banlistAddIp(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession, @RequestBody Map<String, String> body) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @PostMapping({"/banlist/addIp"})
+    public ResponseData<?> banlistAddIp(
+        @RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession, @RequestBody Map<String, String> body
+    ) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
+        } else {
+            String ip = StrUtil.trimToNull(body.get("ip"));
+            if (ip == null) {
+                return ResponseData.error("请输入 IP");
+            } else {
+                this.loginSecurityService.addIpToDenylist(ip);
+                return ResponseData.ok();
+            }
         }
-        String ip = StrUtil.trimToNull((CharSequence)body.get("ip"));
-        if (ip == null) {
-            return ResponseData.error((String)"\u8bf7\u8f93\u5165 IP");
-        }
-        this.loginSecurityService.addIpToDenylist(ip);
-        return ResponseData.ok();
     }
 
-    @PostMapping(value={"/banlist/addDevice"})
-    public ResponseData<?> banlistAddDevice(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession, @RequestBody Map<String, String> body) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @PostMapping({"/banlist/addDevice"})
+    public ResponseData<?> banlistAddDevice(
+        @RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession, @RequestBody Map<String, String> body
+    ) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
+        } else {
+            String did = StrUtil.trimToNull(body.get("deviceId"));
+            if (did == null) {
+                return ResponseData.error("请输入设备码");
+            } else {
+                this.loginSecurityService.addDeviceToDenylist(did);
+                return ResponseData.ok();
+            }
         }
-        String did = StrUtil.trimToNull((CharSequence)body.get("deviceId"));
-        if (did == null) {
-            return ResponseData.error((String)"\u8bf7\u8f93\u5165\u8bbe\u5907\u7801");
-        }
-        this.loginSecurityService.addDeviceToDenylist(did);
-        return ResponseData.ok();
     }
 
-    @PostMapping(value={"/banlist/removeIp"})
-    public ResponseData<?> banlistRemoveIp(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession, @RequestBody Map<String, String> body) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @PostMapping({"/banlist/removeIp"})
+    public ResponseData<?> banlistRemoveIp(
+        @RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession, @RequestBody Map<String, String> body
+    ) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
+        } else {
+            String ip = StrUtil.trimToNull(body.get("ip"));
+            if (ip == null) {
+                return ResponseData.error("缺少 ip");
+            } else {
+                this.loginSecurityService.removeIpFromDenylist(ip);
+                return ResponseData.ok();
+            }
         }
-        String ip = StrUtil.trimToNull((CharSequence)body.get("ip"));
-        if (ip == null) {
-            return ResponseData.error((String)"\u7f3a\u5c11 ip");
-        }
-        this.loginSecurityService.removeIpFromDenylist(ip);
-        return ResponseData.ok();
     }
 
-    @PostMapping(value={"/banlist/removeDevice"})
-    public ResponseData<?> banlistRemoveDevice(@RequestHeader(value="X-Oci-Banlist-Session", required=false) String banlistSession, @RequestBody Map<String, String> body) {
-        ResponseData gate = this.requireBanlistViewSession(banlistSession);
+    @PostMapping({"/banlist/removeDevice"})
+    public ResponseData<?> banlistRemoveDevice(
+        @RequestHeader(value = "X-Oci-Banlist-Session",required = false) String banlistSession, @RequestBody Map<String, String> body
+    ) {
+        ResponseData<?> gate = this.requireBanlistViewSession(banlistSession);
         if (gate != null) {
             return gate;
+        } else {
+            String did = StrUtil.trimToNull(body.get("deviceId"));
+            if (did == null) {
+                return ResponseData.error("缺少 deviceId");
+            } else {
+                this.loginSecurityService.removeDeviceFromDenylist(did);
+                return ResponseData.ok();
+            }
         }
-        String did = StrUtil.trimToNull((CharSequence)body.get("deviceId"));
-        if (did == null) {
-            return ResponseData.error((String)"\u7f3a\u5c11 deviceId");
-        }
-        this.loginSecurityService.removeDeviceFromDenylist(did);
-        return ResponseData.ok();
     }
 
     private ResponseData<?> requireBanlistViewSession(String sessionId) {
-        if (!this.banlistViewSessionService.isValid(sessionId)) {
-            return ResponseData.error((int)403, (String)"\u8bf7\u5148\u901a\u8fc7 Telegram \u9a8c\u8bc1\u8fdb\u5165\u5c01\u7981\u5217\u8868");
-        }
-        return null;
+        return !this.banlistViewSessionService.isValid(sessionId) ? ResponseData.error(403, "请先通过 Telegram 验证进入封禁列表") : null;
     }
 
     private ResponseData<?> requireLoginAuditViewSession(String sessionId) {
-        if (!this.loginAuditViewSessionService.isValid(sessionId)) {
-            return ResponseData.error((int)403, (String)"\u8bf7\u5148\u901a\u8fc7 Telegram \u9a8c\u8bc1\u67e5\u770b\u767b\u5f55\u7edf\u8ba1");
-        }
-        return null;
+        return !this.loginAuditViewSessionService.isValid(sessionId) ? ResponseData.error(403, "请先通过 Telegram 验证查看登录统计") : null;
     }
 
-    @GetMapping(value={"/checkUpdate"})
+    @GetMapping({"/checkUpdate"})
     public ResponseData<?> checkUpdate() {
-        return ResponseData.ok((Object)this.systemService.checkUpdate());
+        return ResponseData.ok(this.systemService.checkUpdate());
     }
 
-    @PostMapping(value={"/performUpdate"})
+    @PostMapping({"/performUpdate"})
     public ResponseData<?> performUpdate() {
         this.systemService.performUpdate();
-        return ResponseData.ok((Object)"\u66f4\u65b0\u5df2\u542f\u52a8\uff0c\u670d\u52a1\u5c06\u5728\u51e0\u79d2\u540e\u91cd\u542f");
+        return ResponseData.ok("更新已启动，服务将在几秒后重启");
     }
 
-    @GetMapping(value={"/ociProxy"})
+    @GetMapping({"/ociProxy"})
     public ResponseData<?> getOciProxy() {
         OciProxySnapshot s = this.ociProxyConfigService.snapshot();
-        LinkedHashMap<String, Object> m = new LinkedHashMap<String, Object>();
+        Map<String, Object> m = new LinkedHashMap<>();
         m.put("enabled", s.enabled());
         m.put("proxyType", s.type());
         m.put("host", s.host() == null ? "" : s.host());
-        m.put("port", s.port() > 0 ? Integer.valueOf(s.port()) : null);
+        m.put("port", s.port() > 0 ? s.port() : null);
         String u = s.proxyUser();
-        m.put("username", u == null || u.isBlank() ? "" : this.maskSecret(u));
+        m.put("username", u != null && !u.isBlank() ? this.maskSecret(u) : "");
         m.put("passwordConfigured", s.proxyPass() != null && !s.proxyPass().isBlank());
-        m.put("password", s.proxyPass() == null || s.proxyPass().isBlank() ? "" : this.maskSecret(s.proxyPass()));
-        m.put("fullUrl", s.fullUrl() == null || s.fullUrl().isBlank() ? "" : this.maskUrlForDisplay(s.fullUrl()));
+        m.put("password", s.proxyPass() != null && !s.proxyPass().isBlank() ? this.maskSecret(s.proxyPass()) : "");
+        m.put("fullUrl", s.fullUrl() != null && !s.fullUrl().isBlank() ? this.maskUrlForDisplay(s.fullUrl()) : "");
         m.put("fullUrlConfigured", s.fullUrl() != null && !s.fullUrl().isBlank());
         return ResponseData.ok(m);
     }
@@ -373,14 +361,14 @@ public class SystemController {
     private String maskUrlForDisplay(String url) {
         if (url == null || url.isBlank()) {
             return "";
-        }
-        if (url.contains("@")) {
+        } else if (url.contains("@")) {
             return url.replaceAll("://([^/]+)@", "://****@");
+        } else {
+            return url.length() > 48 ? url.substring(0, 24) + "…" : url;
         }
-        return url.length() > 48 ? url.substring(0, 24) + "\u2026" : url;
     }
 
-    @PostMapping(value={"/ociProxy"})
+    @PostMapping({"/ociProxy"})
     public ResponseData<?> saveOciProxy(@RequestBody Map<String, String> params) {
         OciProxySnapshot cur = this.ociProxyConfigService.snapshot();
         boolean en = "true".equalsIgnoreCase(this.nvl(params.get("enabled"))) || "1".equals(this.nvl(params.get("enabled")));
@@ -391,20 +379,19 @@ public class SystemController {
         if (ps != null && !ps.isBlank()) {
             try {
                 port = Integer.parseInt(ps.trim());
-            }
-            catch (NumberFormatException numberFormatException) {
-                // empty catch block
+            } catch (NumberFormatException var12) {
             }
         }
+
         String user = this.resolveMasked(params.get("username"), cur.proxyUser());
         String pass = this.resolveMasked(params.get("password"), cur.proxyPass());
         String full = this.resolveMasked(params.get("fullUrl"), cur.fullUrl());
-        OciProxySnapshot snap = OciProxySnapshot.fromForm((boolean)en, (String)type, (String)host, (int)port, (String)user, (String)pass, (String)full);
+        OciProxySnapshot snap = OciProxySnapshot.fromForm(en, type, host, port, user, pass, full);
         this.ociProxyConfigService.persistAndReload(snap);
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/ociProxy/test"})
+    @PostMapping({"/ociProxy/test"})
     public ResponseData<?> testOciProxy(@RequestBody Map<String, String> params) {
         OciProxySnapshot cur = this.ociProxyConfigService.snapshot();
         boolean en = "true".equalsIgnoreCase(this.nvl(params.get("enabled"))) || "1".equals(this.nvl(params.get("enabled")));
@@ -415,17 +402,16 @@ public class SystemController {
         if (ps != null && !ps.isBlank()) {
             try {
                 port = Integer.parseInt(ps.trim());
-            }
-            catch (NumberFormatException numberFormatException) {
-                // empty catch block
+            } catch (NumberFormatException var13) {
             }
         }
+
         String user = this.resolveMasked(params.get("username"), cur.proxyUser());
         String pass = this.resolveMasked(params.get("password"), cur.proxyPass());
         String full = this.resolveMasked(params.get("fullUrl"), cur.fullUrl());
-        OciProxySnapshot test = OciProxySnapshot.fromForm((boolean)en, (String)type, (String)host, (int)port, (String)user, (String)pass, (String)full);
+        OciProxySnapshot test = OciProxySnapshot.fromForm(en, type, host, port, user, pass, full);
         String msg = this.ociProxyConfigService.testWithParams(test);
-        return ResponseData.ok((Object)msg);
+        return ResponseData.ok(msg);
     }
 
     private String nvl(String s) {
@@ -433,10 +419,6 @@ public class SystemController {
     }
 
     private String resolveMasked(String fromClient, String existing) {
-        if (fromClient != null && fromClient.contains("****") && existing != null && !existing.isBlank()) {
-            return existing;
-        }
-        return this.nvl(fromClient);
+        return fromClient != null && fromClient.contains("****") && existing != null && !existing.isBlank() ? existing : this.nvl(fromClient);
     }
 }
-

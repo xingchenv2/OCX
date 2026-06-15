@@ -1,16 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.baomidou.mybatisplus.core.conditions.Wrapper
- *  com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
- *  com.ocxworker.mapper.OciKvMapper
- *  com.ocxworker.model.entity.OciKv
- *  com.ocxworker.service.OracleAiGatewayToggleService
- *  com.ocxworker.util.CommonUtils
- *  jakarta.annotation.Resource
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -38,32 +25,39 @@ public class OracleAiGatewayToggleService {
         Boolean c = this.cachedEnabled;
         if (c != null && now - this.cachedAtMs.get() < 2000L) {
             return c;
+        } else {
+            OciKv kv = (OciKv)this.kvMapper
+                .selectOne(
+                    (Wrapper)(new LambdaQueryWrapper<OciKv>().eq(OciKv::getCode, "oracle_ai_openai_proxy_enabled"))
+                        .eq(OciKv::getType, "sys_config")
+                );
+            boolean enabled = kv == null || kv.getValue() == null || !"false".equalsIgnoreCase(kv.getValue().trim());
+            this.cachedEnabled = enabled;
+            this.cachedAtMs.set(now);
+            return enabled;
         }
-        OciKv kv = (OciKv)this.kvMapper.selectOne((Wrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciKv::getCode, (Object)CODE)).eq(OciKv::getType, (Object)TYPE));
-        boolean enabled = kv == null || kv.getValue() == null || !"false".equalsIgnoreCase(kv.getValue().trim());
-        this.cachedEnabled = enabled;
-        this.cachedAtMs.set(now);
-        return enabled;
     }
 
     public void setEnabled(boolean enabled) {
-        String val;
-        OciKv existing = (OciKv)this.kvMapper.selectOne((Wrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciKv::getCode, (Object)CODE)).eq(OciKv::getType, (Object)TYPE));
-        String string = val = enabled ? "true" : "false";
+        OciKv existing = (OciKv)this.kvMapper
+            .selectOne(
+                (Wrapper)(new LambdaQueryWrapper<OciKv>().eq(OciKv::getCode, "oracle_ai_openai_proxy_enabled")).eq(OciKv::getType, "sys_config")
+            );
+        String val = enabled ? "true" : "false";
         if (existing != null) {
             existing.setValue(val);
-            this.kvMapper.updateById((Object)existing);
+            this.kvMapper.updateById(existing);
         } else {
             OciKv kv = new OciKv();
             kv.setId(CommonUtils.generateId());
-            kv.setCode(CODE);
-            kv.setType(TYPE);
+            kv.setCode("oracle_ai_openai_proxy_enabled");
+            kv.setType("sys_config");
             kv.setValue(val);
             kv.setCreateTime(LocalDateTime.now());
-            this.kvMapper.insert((Object)kv);
+            this.kvMapper.insert(kv);
         }
+
         this.cachedEnabled = enabled;
         this.cachedAtMs.set(System.currentTimeMillis());
     }
 }
-

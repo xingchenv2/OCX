@@ -1,26 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.RandomUtil
- *  cn.hutool.core.util.StrUtil
- *  cn.hutool.json.JSONArray
- *  cn.hutool.json.JSONObject
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.service.LoginSecurityService
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.TelegramInboundUpdateDispatcher
- *  com.ocxworker.service.TgNotifyConfigRollbackService
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.boot.context.event.ApplicationReadyEvent
- *  org.springframework.context.annotation.Lazy
- *  org.springframework.context.event.EventListener
- *  org.springframework.scheduling.annotation.Scheduled
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.RandomUtil;
@@ -28,11 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import com.ocxworker.enums.SysCfgEnum;
-import com.ocxworker.service.LoginSecurityService;
-import com.ocxworker.service.NotificationService;
-import com.ocxworker.service.TelegramInboundUpdateDispatcher;
 import jakarta.annotation.Resource;
-import java.lang.invoke.CallSite;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +19,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @Service
 public class TgNotifyConfigRollbackService {
     @Generated
@@ -65,25 +35,25 @@ public class TgNotifyConfigRollbackService {
     private volatile String pollerSessionId;
     private volatile Thread oldBotPollerThread;
 
-    @EventListener(value={ApplicationReadyEvent.class})
+    @EventListener({ApplicationReadyEvent.class})
     public void resumeOldBotPollerIfNeeded() {
-        if (!this.hasRollbackSession() || this.isRollbackExpired()) {
+        if (this.hasRollbackSession() && !this.isRollbackExpired()) {
+            String oldToken = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_OLD_BOT_TOKEN);
+            String sessionId = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID);
+            if (StrUtil.isNotBlank(oldToken) && StrUtil.isNotBlank(sessionId)) {
+                this.startOldBotPoller(oldToken.trim(), sessionId.trim());
+                log.info("[TG rollback] resumed old-bot poller for session {}", sessionId);
+            }
+        } else {
             if (this.hasRollbackSession() && this.isRollbackExpired()) {
                 this.clearRollbackState(true);
             }
-            return;
-        }
-        String oldToken = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_OLD_BOT_TOKEN);
-        String sessionId = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID);
-        if (StrUtil.isNotBlank((CharSequence)oldToken) && StrUtil.isNotBlank((CharSequence)sessionId)) {
-            this.startOldBotPoller(oldToken.trim(), sessionId.trim());
-            log.info("[TG rollback] resumed old-bot poller for session {}", (Object)sessionId);
         }
     }
 
     public void applyIdentityChange(String oldBotToken, String oldChatId, String newBotToken, String newChatId, String offenderIp, String offenderDeviceId) {
         this.clearRollbackState(false);
-        String sessionId = RandomUtil.randomString((String)"abcdef0123456789", (int)16);
+        String sessionId = RandomUtil.randomString("abcdef0123456789", 16);
         long expireAt = System.currentTimeMillis() + 900000L;
         this.notificationService.saveKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID, sessionId);
         this.notificationService.saveKvValue(SysCfgEnum.TG_ROLLBACK_OLD_BOT_TOKEN, oldBotToken);
@@ -93,54 +63,56 @@ public class TgNotifyConfigRollbackService {
         this.notificationService.saveKvValue(SysCfgEnum.TG_BOT_TOKEN, newBotToken);
         this.notificationService.saveKvValue(SysCfgEnum.TG_CHAT_ID, newChatId);
         this.notificationService.resetTelegramUpdatesOffset();
-        String alertText = TgNotifyConfigRollbackService.formatIdentityChangedAlert((String)offenderIp, (String)offenderDeviceId);
-        List rows = this.buildAlertKeyboard(offenderIp, sessionId);
+        String alertText = formatIdentityChangedAlert(offenderIp, offenderDeviceId);
+        List<List<Map<String, String>>> rows = this.buildAlertKeyboard(offenderIp, sessionId);
         this.notificationService.sendSecurityTextWithInlineKeyboard(oldBotToken, oldChatId, alertText, rows);
         this.startOldBotPoller(oldBotToken.trim(), sessionId);
-        log.info("[TG rollback] identity change applied; session={} expireAt={}", (Object)sessionId, (Object)expireAt);
+        log.info("[TG rollback] identity change applied; session={} expireAt={}", sessionId, expireAt);
     }
 
     public boolean tryHandleTelegramCallback(String rawData, String callbackQueryId, String answeringBotToken) {
-        if (rawData == null || !rawData.startsWith("n|")) {
+        if (rawData != null && rawData.startsWith("n|")) {
+            String token = rawData.substring("n|".length());
+            if (token.length() > 32) {
+                this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "无效操作", false, answeringBotToken);
+                return true;
+            } else if (!this.isRollbackSessionValid(token)) {
+                this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "操作已过期（超过 15 分钟或已处理）", false, answeringBotToken);
+                return true;
+            } else {
+                this.rejectAndRestore();
+                this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "已拒绝更改，Telegram 通知已恢复为原配置", false, answeringBotToken);
+                return true;
+            }
+        } else {
             return false;
         }
-        String token = rawData.substring("n|".length());
-        if (token.length() > 32) {
-            this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "\u65e0\u6548\u64cd\u4f5c", false, answeringBotToken);
-            return true;
-        }
-        if (!this.isRollbackSessionValid(token)) {
-            this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "\u64cd\u4f5c\u5df2\u8fc7\u671f\uff08\u8d85\u8fc7 15 \u5206\u949f\u6216\u5df2\u5904\u7406\uff09", false, answeringBotToken);
-            return true;
-        }
-        this.rejectAndRestore();
-        this.notificationService.answerTelegramCallbackQuery(callbackQueryId, "\u5df2\u62d2\u7edd\u66f4\u6539\uff0cTelegram \u901a\u77e5\u5df2\u6062\u590d\u4e3a\u539f\u914d\u7f6e", false, answeringBotToken);
-        return true;
     }
 
-    @Scheduled(fixedRate=60000L)
+    @Scheduled(
+        fixedRate = 60000L
+    )
     public void purgeExpiredRollback() {
-        if (!this.hasRollbackSession()) {
-            return;
-        }
-        if (this.isRollbackExpired()) {
-            log.info("[TG rollback] session expired, clearing staged old config");
-            this.clearRollbackState(true);
+        if (this.hasRollbackSession()) {
+            if (this.isRollbackExpired()) {
+                log.info("[TG rollback] session expired, clearing staged old config");
+                this.clearRollbackState(true);
+            }
         }
     }
 
     private void rejectAndRestore() {
         String oldToken = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_OLD_BOT_TOKEN);
         String oldChatId = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_OLD_CHAT_ID);
-        if (StrUtil.isBlank((CharSequence)oldToken) || StrUtil.isBlank((CharSequence)oldChatId)) {
+        if (!StrUtil.isBlank(oldToken) && !StrUtil.isBlank(oldChatId)) {
+            this.notificationService.saveKvValue(SysCfgEnum.TG_BOT_TOKEN, oldToken.trim());
+            this.notificationService.saveKvValue(SysCfgEnum.TG_CHAT_ID, oldChatId.trim());
+            this.notificationService.resetTelegramUpdatesOffset();
             this.clearRollbackState(true);
-            return;
+            log.warn("[TG rollback] notify config reverted to previous bot/chat via TG reject");
+        } else {
+            this.clearRollbackState(true);
         }
-        this.notificationService.saveKvValue(SysCfgEnum.TG_BOT_TOKEN, oldToken.trim());
-        this.notificationService.saveKvValue(SysCfgEnum.TG_CHAT_ID, oldChatId.trim());
-        this.notificationService.resetTelegramUpdatesOffset();
-        this.clearRollbackState(true);
-        log.warn("[TG rollback] notify config reverted to previous bot/chat via TG reject");
     }
 
     private synchronized void startOldBotPoller(String oldBotToken, String sessionId) {
@@ -168,33 +140,35 @@ public class TgNotifyConfigRollbackService {
                 JSONArray updates = this.notificationService.telegramGetUpdates(oldBotToken, offset, 25);
                 if (updates == null) {
                     Thread.sleep(2000L);
-                    continue;
-                }
-                long maxSeen = -1L;
-                for (int i = 0; i < updates.size(); ++i) {
-                    long uid;
-                    JSONObject u = updates.getJSONObject((Object)i);
-                    if (u == null) continue;
-                    Long uidObj = u.getLong((Object)"update_id");
-                    long l = uid = uidObj == null ? 0L : uidObj;
-                    if (uid > 0L) {
-                        maxSeen = Math.max(maxSeen, uid);
+                } else {
+                    long maxSeen = -1L;
+
+                    for (int i = 0; i < updates.size(); i++) {
+                        JSONObject u = updates.getJSONObject(i);
+                        if (u != null) {
+                            Long uidObj = u.getLong("update_id");
+                            long uid = uidObj == null ? 0L : uidObj;
+                            if (uid > 0L) {
+                                maxSeen = Math.max(maxSeen, uid);
+                            }
+
+                            this.telegramInboundUpdateDispatcher.dispatchUpdateJson(u.toString(), oldBotToken);
+                        }
                     }
-                    this.telegramInboundUpdateDispatcher.dispatchUpdateJson(u.toString(), oldBotToken);
+
+                    if (maxSeen >= 0L) {
+                        this.saveRollbackOffset(maxSeen + 1L);
+                    }
                 }
-                if (maxSeen < 0L) continue;
-                this.saveRollbackOffset(maxSeen + 1L);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException var14) {
                 Thread.currentThread().interrupt();
                 break;
-            }
-            catch (Exception e) {
-                log.warn("[TG rollback] old bot getUpdates: {}", (Object)e.getMessage());
+            } catch (Exception var15) {
+                log.warn("[TG rollback] old bot getUpdates: {}", var15.getMessage());
+
                 try {
                     Thread.sleep(2000L);
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException var13) {
                     Thread.currentThread().interrupt();
                     break;
                 }
@@ -203,50 +177,53 @@ public class TgNotifyConfigRollbackService {
     }
 
     private List<List<Map<String, String>>> buildAlertKeyboard(String offenderIp, String sessionId) {
-        ArrayList<Map<String, CallSite>> row = new ArrayList<Map<String, CallSite>>();
+        List<Map<String, String>> row = new ArrayList<>();
         String blockTok = this.loginSecurityService.registerBlockIpCallback(offenderIp);
         if (blockTok != null) {
-            row.add(Map.of("text", "\u62c9\u9ed1\u8be5IP", "callback_data", "i|" + blockTok));
+            row.add(Map.of("text", "拉黑该IP", "callback_data", "i|" + blockTok));
         }
-        row.add(Map.of("text", "\u62d2\u7edd\u66f4\u6539", "callback_data", "n|" + sessionId));
+
+        row.add(Map.of("text", "拒绝更改", "callback_data", "n|" + sessionId));
         return List.of(row);
     }
 
     private static String formatIdentityChangedAlert(String ip, String deviceId) {
-        String ipLine = StrUtil.isNotBlank((CharSequence)ip) ? ip.trim() : "\u2014";
-        String devLine = StrUtil.isNotBlank((CharSequence)deviceId) ? deviceId.trim() : "\u2014";
-        return "\u3010OCI WORKER \u5b89\u5168\u63d0\u793a\u3011\nTelegram \u901a\u77e5\u914d\u7f6e\u5df2\u66f4\u6539\uff01\n\u5982\u975e\u672c\u4eba\u64cd\u4f5c\uff0c\u8bf7\u7acb\u5373\u5904\u7406\u3002\nIP: " + ipLine + "\n\u8bbe\u5907: " + devLine + "\n\n\uff0815 \u5206\u949f\u5185\u53ef\u70b9\u300c\u62d2\u7edd\u66f4\u6539\u300d\u6062\u590d\u539f\u914d\u7f6e\uff09";
+        String ipLine = StrUtil.isNotBlank(ip) ? ip.trim() : "—";
+        String devLine = StrUtil.isNotBlank(deviceId) ? deviceId.trim() : "—";
+        return "【OCI WORKER 安全提示】\nTelegram 通知配置已更改！\n如非本人操作，请立即处理。\nIP: " + ipLine + "\n设备: " + devLine + "\n\n（15 分钟内可点「拒绝更改」恢复原配置）";
     }
 
     private boolean hasRollbackSession() {
-        return StrUtil.isNotBlank((CharSequence)this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID));
+        return StrUtil.isNotBlank(this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID));
     }
 
     private boolean isRollbackExpired() {
         String exp = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_EXPIRE_AT);
-        if (StrUtil.isBlank((CharSequence)exp)) {
+        if (StrUtil.isBlank(exp)) {
             return true;
-        }
-        try {
-            return System.currentTimeMillis() > Long.parseLong(exp.trim());
-        }
-        catch (NumberFormatException e) {
-            return true;
+        } else {
+            try {
+                return System.currentTimeMillis() > Long.parseLong(exp.trim());
+            } catch (NumberFormatException var3) {
+                return true;
+            }
         }
     }
 
     private boolean isRollbackSessionValid(String sessionId) {
-        if (StrUtil.isBlank((CharSequence)sessionId) || this.isRollbackExpired()) {
+        if (!StrUtil.isBlank(sessionId) && !this.isRollbackExpired()) {
+            String stored = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID);
+            return sessionId.equals(StrUtil.trimToNull(stored));
+        } else {
             return false;
         }
-        String stored = this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID);
-        return sessionId.equals(StrUtil.trimToNull((CharSequence)stored));
     }
 
     private void clearRollbackState(boolean stopPoller) {
         if (stopPoller) {
             this.stopOldBotPoller();
         }
+
         this.notificationService.removeKvValue(SysCfgEnum.TG_ROLLBACK_SESSION_ID);
         this.notificationService.removeKvValue(SysCfgEnum.TG_ROLLBACK_OLD_BOT_TOKEN);
         this.notificationService.removeKvValue(SysCfgEnum.TG_ROLLBACK_OLD_CHAT_ID);
@@ -255,23 +232,21 @@ public class TgNotifyConfigRollbackService {
     }
 
     private long readRollbackOffset() {
-        String v = StrUtil.trimToNull((CharSequence)this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_UPDATES_OFFSET));
+        String v = StrUtil.trimToNull(this.notificationService.getKvValue(SysCfgEnum.TG_ROLLBACK_UPDATES_OFFSET));
         if (v == null) {
             return 0L;
-        }
-        try {
-            return Long.parseLong(v);
-        }
-        catch (NumberFormatException e) {
-            return 0L;
+        } else {
+            try {
+                return Long.parseLong(v);
+            } catch (NumberFormatException var3) {
+                return 0L;
+            }
         }
     }
 
     private void saveRollbackOffset(long nextOffset) {
-        if (nextOffset <= 0L) {
-            return;
+        if (nextOffset > 0L) {
+            this.notificationService.saveKvValue(SysCfgEnum.TG_ROLLBACK_UPDATES_OFFSET, String.valueOf(nextOffset));
         }
-        this.notificationService.saveKvValue(SysCfgEnum.TG_ROLLBACK_UPDATES_OFFSET, String.valueOf(nextOffset));
     }
 }
-

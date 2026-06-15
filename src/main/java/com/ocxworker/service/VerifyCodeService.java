@@ -1,28 +1,9 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.util.RandomUtil
- *  cn.hutool.core.util.StrUtil
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.exception.OciException
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.VerifyCodeService
- *  com.ocxworker.service.VerifyCodeService$CodeEntry
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.ocxworker.enums.SysCfgEnum;
 import com.ocxworker.exception.OciException;
-import com.ocxworker.service.NotificationService;
-import com.ocxworker.service.VerifyCodeService;
 import jakarta.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,86 +14,89 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class VerifyCodeService {
-    record CodeEntry(String code, long expireAt) {}
     @Generated
     private static final Logger log = LoggerFactory.getLogger(VerifyCodeService.class);
     private static final long CODE_EXPIRE_MS = 300000L;
-    private static final Map<String, CodeEntry> codeStore = new ConcurrentHashMap();
+    private static final Map<String, VerifyCodeService.CodeEntry> codeStore = new ConcurrentHashMap<>();
     @Resource
     private NotificationService notificationService;
 
     public boolean isTgConfigured() {
         String token = this.notificationService.getKvValue(SysCfgEnum.TG_BOT_TOKEN);
         String chatId = this.notificationService.getKvValue(SysCfgEnum.TG_CHAT_ID);
-        return StrUtil.isNotBlank((CharSequence)token) && StrUtil.isNotBlank((CharSequence)chatId);
+        return StrUtil.isNotBlank(token) && StrUtil.isNotBlank(chatId);
     }
 
     public void sendCode(String action) {
         if (!this.isTgConfigured()) {
-            throw new OciException("\u672a\u7ed1\u5b9a Telegram\uff0c\u65e0\u6cd5\u6267\u884c\u6b64\u64cd\u4f5c\u3002\u8bf7\u5148\u5728\u7cfb\u7edf\u8bbe\u7f6e\u4e2d\u914d\u7f6e TG Bot\u3002");
+            throw new OciException("未绑定 Telegram，无法执行此操作。请先在系统设置中配置 TG Bot。");
+        } else {
+            String code = RandomUtil.randomNumbers(6);
+            codeStore.put(action, new VerifyCodeService.CodeEntry(code, System.currentTimeMillis() + 300000L));
+
+            String actionName = switch (action) {
+                case "terminate" -> "终止实例";
+                case "backup" -> "备份数据";
+                case "createUser" -> "新增用户";
+                case "updateUser" -> "修改用户信息";
+                case "updateUserCapabilities" -> "编辑用户权限";
+                case "removeFromAdmin" -> "移出管理员组";
+                case "clearMfa" -> "清理 MFA";
+                case "disableUser" -> "禁用用户";
+                case "changePassword" -> "修改登录密码";
+                case "deleteVolume" -> "删除卷";
+                case "deleteStorage" -> "删除存储资源";
+                case "editBucketPolicy" -> "修改存储桶策略";
+                case "deleteVcn" -> "删除 VCN";
+                case "deleteVcnSubnet" -> "删除子网";
+                case "deleteVcnIgw" -> "删除 Internet 网关";
+                case "deleteVcnNat" -> "删除 NAT 网关";
+                case "deleteVcnSg" -> "删除服务网关";
+                case "deleteVcnLpg" -> "删除本地对等连接网关";
+                case "deleteVcnRt" -> "删除路由表";
+                case "deleteVcnSl" -> "删除安全列表";
+                case "deleteVcnDrg" -> "删除 DRG";
+                case "authFactors" -> "修改域验证因素设置";
+                case "banlist" -> "封禁列表管理";
+                case "loginAudit" -> "登录统计查看";
+                case "deleteCompartment" -> "删除区间";
+                case "updateCompartment" -> "重命名区间";
+                case "moveCompartmentResource" -> "迁移区间资源";
+                case "notifyConfig" -> "修改 Telegram 通知配置";
+                case "cfZonePause" -> "Cloudflare 暂停/恢复区域解析";
+                case "cfZoneDelete" -> "Cloudflare 删除区域";
+                case "cfTunnelDelete" -> "Cloudflare 删除 Tunnel";
+                case "cfWorkerDelete" -> "Cloudflare 删除 Worker";
+                case "cfEmailDestinationDelete" -> "Cloudflare 删除目标邮箱";
+                case "cfEmailRoutingDisable" -> "Cloudflare 禁用 Email Routing";
+                case "cfEmailDnsLock" -> "Cloudflare 锁定 Email DNS MX";
+                case "cfEmailDnsUnlock" -> "Cloudflare 解锁 Email DNS MX";
+                default -> action;
+            };
+            String msg = String.format("【OCI Worker 安全验证】\n操作：%s\n验证码：%s\n有效期：5分钟\n\n如非本人操作，请检查账户安全。", actionName, code);
+            this.notificationService.sendMessage(msg);
+            log.info("Verification code sent for action: {}", action);
         }
-        String code = RandomUtil.randomNumbers((int)6);
-        codeStore.put(action, new CodeEntry(code, System.currentTimeMillis() + 300000L));
-        String actionName = switch (action) {
-            case "terminate" -> "\u7ec8\u6b62\u5b9e\u4f8b";
-            case "backup" -> "\u5907\u4efd\u6570\u636e";
-            case "createUser" -> "\u65b0\u589e\u7528\u6237";
-            case "updateUser" -> "\u4fee\u6539\u7528\u6237\u4fe1\u606f";
-            case "updateUserCapabilities" -> "\u7f16\u8f91\u7528\u6237\u6743\u9650";
-            case "removeFromAdmin" -> "\u79fb\u51fa\u7ba1\u7406\u5458\u7ec4";
-            case "clearMfa" -> "\u6e05\u7406 MFA";
-            case "disableUser" -> "\u7981\u7528\u7528\u6237";
-            case "changePassword" -> "\u4fee\u6539\u767b\u5f55\u5bc6\u7801";
-            case "deleteVolume" -> "\u5220\u9664\u5377";
-            case "deleteStorage" -> "\u5220\u9664\u5b58\u50a8\u8d44\u6e90";
-            case "editBucketPolicy" -> "\u4fee\u6539\u5b58\u50a8\u6876\u7b56\u7565";
-            case "deleteVcn" -> "\u5220\u9664 VCN";
-            case "deleteVcnSubnet" -> "\u5220\u9664\u5b50\u7f51";
-            case "deleteVcnIgw" -> "\u5220\u9664 Internet \u7f51\u5173";
-            case "deleteVcnNat" -> "\u5220\u9664 NAT \u7f51\u5173";
-            case "deleteVcnSg" -> "\u5220\u9664\u670d\u52a1\u7f51\u5173";
-            case "deleteVcnLpg" -> "\u5220\u9664\u672c\u5730\u5bf9\u7b49\u8fde\u63a5\u7f51\u5173";
-            case "deleteVcnRt" -> "\u5220\u9664\u8def\u7531\u8868";
-            case "deleteVcnSl" -> "\u5220\u9664\u5b89\u5168\u5217\u8868";
-            case "deleteVcnDrg" -> "\u5220\u9664 DRG";
-            case "authFactors" -> "\u4fee\u6539\u57df\u9a8c\u8bc1\u56e0\u7d20\u8bbe\u7f6e";
-            case "banlist" -> "\u5c01\u7981\u5217\u8868\u7ba1\u7406";
-            case "loginAudit" -> "\u767b\u5f55\u7edf\u8ba1\u67e5\u770b";
-            case "deleteCompartment" -> "\u5220\u9664\u533a\u95f4";
-            case "updateCompartment" -> "\u91cd\u547d\u540d\u533a\u95f4";
-            case "moveCompartmentResource" -> "\u8fc1\u79fb\u533a\u95f4\u8d44\u6e90";
-            case "notifyConfig" -> "\u4fee\u6539 Telegram \u901a\u77e5\u914d\u7f6e";
-            case "cfZonePause" -> "Cloudflare \u6682\u505c/\u6062\u590d\u533a\u57df\u89e3\u6790";
-            case "cfZoneDelete" -> "Cloudflare \u5220\u9664\u533a\u57df";
-            case "cfTunnelDelete" -> "Cloudflare \u5220\u9664 Tunnel";
-            case "cfWorkerDelete" -> "Cloudflare \u5220\u9664 Worker";
-            case "cfEmailDestinationDelete" -> "Cloudflare \u5220\u9664\u76ee\u6807\u90ae\u7bb1";
-            case "cfEmailRoutingDisable" -> "Cloudflare \u7981\u7528 Email Routing";
-            case "cfEmailDnsLock" -> "Cloudflare \u9501\u5b9a Email DNS MX";
-            case "cfEmailDnsUnlock" -> "Cloudflare \u89e3\u9501 Email DNS MX";
-            default -> action;
-        };
-        String msg = String.format("\u3010OCX \u5b89\u5168\u9a8c\u8bc1\u3011\n\u64cd\u4f5c\uff1a%s\n\u9a8c\u8bc1\u7801\uff1a%s\n\u6709\u6548\u671f\uff1a5\u5206\u949f\n\n\u5982\u975e\u672c\u4eba\u64cd\u4f5c\uff0c\u8bf7\u68c0\u67e5\u8d26\u6237\u5b89\u5168\u3002", actionName, code);
-        this.notificationService.sendMessage(msg);
-        log.info("Verification code sent for action: {}", (Object)action);
     }
 
     public void verifyCode(String action, String inputCode) {
         if (!this.isTgConfigured()) {
-            throw new OciException("\u672a\u7ed1\u5b9a Telegram\uff0c\u65e0\u6cd5\u6267\u884c\u6b64\u64cd\u4f5c");
+            throw new OciException("未绑定 Telegram，无法执行此操作");
+        } else {
+            VerifyCodeService.CodeEntry entry = codeStore.get(action);
+            if (entry == null) {
+                throw new OciException("请先获取验证码");
+            } else if (System.currentTimeMillis() > entry.expireAt()) {
+                codeStore.remove(action);
+                throw new OciException("验证码已过期，请重新获取");
+            } else if (!entry.code().equals(inputCode)) {
+                throw new OciException("验证码错误");
+            } else {
+                codeStore.remove(action);
+            }
         }
-        CodeEntry entry = (CodeEntry)codeStore.get(action);
-        if (entry == null) {
-            throw new OciException("\u8bf7\u5148\u83b7\u53d6\u9a8c\u8bc1\u7801");
-        }
-        if (System.currentTimeMillis() > entry.expireAt()) {
-            codeStore.remove(action);
-            throw new OciException("\u9a8c\u8bc1\u7801\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u83b7\u53d6");
-        }
-        if (!entry.code().equals(inputCode)) {
-            throw new OciException("\u9a8c\u8bc1\u7801\u9519\u8bef");
-        }
-        codeStore.remove(action);
+    }
+
+    private static record CodeEntry(String code, long expireAt) {
     }
 }
-

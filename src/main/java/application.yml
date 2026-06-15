@@ -1,0 +1,58 @@
+server:
+  port: 8818
+
+# New API / OpenAI 兼容 HTTP：独立端口，与面板(8818) 分离。Base URL 示例 http://<本机或反代地址>:<openaiApi.port>/v1
+
+webssh:
+  timeout-minutes: 120
+ociworker:
+  openaiApi:
+    # 0 = 不启用第二端口；>0 且与 server.port 不同时，Tomcat 额外监听该口供 /v1 等 OpenAI 路由
+    port: 8080
+  telegram:
+    # Bot 更新由服务端 getUpdates 长轮询接收（无需 Webhook、无需公网 HTTPS 指向本机）。
+    # 以下两项已废弃，保留仅为兼容旧环境变量占位（代码不再读取）。
+    webhook-secret: ${TG_WEBHOOK_SECRET:}
+    webhook-secret-token: ${TG_WEBHOOK_SECRET_TOKEN:}
+
+web:
+  account: admin
+  password: admin123
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/oci_worker?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ociworker
+    password: ociworker123
+    hikari:
+      # 连接在池里的最长存活（须小于 MySQL 的 wait_timeout，并留 1 分钟以上余量）
+      max-lifetime: 1500000
+      # 定期对空闲连接发保活，减少「服务端已关、池里还以为能用」
+      keepalive-time: 120000
+  sql:
+    init:
+      mode: never
+  ai:
+    openai:
+      api-key: sk-xxx
+      base-url: https://api.siliconflow.cn
+      chat:
+        options:
+          model: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+
+mybatis-plus:
+  mapper-locations: classpath*:com/ocxworker/mapper/xml/*.xml,classpath*:mapper/*.xml
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %msg%n"
+  level:
+    com.oracle.bmc: error
+    c.o.b.h.c.j: error
+
+oci-cfg:
+  key-dir-path: ./keys

@@ -1,19 +1,13 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.params.UpdateTaskParams
- *  jakarta.validation.constraints.NotBlank
- *  lombok.Generated
- */
 package com.ocxworker.model.params;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Generated;
 
 public class UpdateTaskParams {
-    @NotBlank(message="\u4efb\u52a1ID\u4e0d\u80fd\u4e3a\u7a7a")
-    private @NotBlank(message="\u4efb\u52a1ID\u4e0d\u80fd\u4e3a\u7a7a") String taskId;
+    @NotBlank(
+        message = "任务ID不能为空"
+    )
+    private String taskId;
     private String architecture;
     private Double ocpus;
     private Double memory;
@@ -26,10 +20,6 @@ public class UpdateTaskParams {
     private String customScript;
     private Boolean assignPublicIp;
     private Boolean assignIpv6;
-
-    @Generated
-    public UpdateTaskParams() {
-    }
 
     @Generated
     public String getTaskId() {
@@ -97,188 +87,229 @@ public class UpdateTaskParams {
     }
 
     @Generated
-    public void setTaskId(String taskId) {
+    public void setTaskId(final String taskId) {
         this.taskId = taskId;
     }
 
     @Generated
-    public void setArchitecture(String architecture) {
+    public void setArchitecture(final String architecture) {
         this.architecture = architecture;
     }
 
     @Generated
-    public void setOcpus(Double ocpus) {
+    public void setOcpus(final Double ocpus) {
         this.ocpus = ocpus;
     }
 
     @Generated
-    public void setMemory(Double memory) {
+    public void setMemory(final Double memory) {
         this.memory = memory;
     }
 
     @Generated
-    public void setDisk(Integer disk) {
+    public void setDisk(final Integer disk) {
         this.disk = disk;
     }
 
     @Generated
-    public void setVpusPerGB(Integer vpusPerGB) {
+    public void setVpusPerGB(final Integer vpusPerGB) {
         this.vpusPerGB = vpusPerGB;
     }
 
     @Generated
-    public void setCreateNumbers(Integer createNumbers) {
+    public void setCreateNumbers(final Integer createNumbers) {
         this.createNumbers = createNumbers;
     }
 
     @Generated
-    public void setInterval(Integer interval) {
+    public void setInterval(final Integer interval) {
         this.interval = interval;
     }
 
     @Generated
-    public void setRootPassword(String rootPassword) {
+    public void setRootPassword(final String rootPassword) {
         this.rootPassword = rootPassword;
     }
 
     @Generated
-    public void setOperationSystem(String operationSystem) {
+    public void setOperationSystem(final String operationSystem) {
         this.operationSystem = operationSystem;
     }
 
     @Generated
-    public void setCustomScript(String customScript) {
+    public void setCustomScript(final String customScript) {
         this.customScript = customScript;
     }
 
     @Generated
-    public void setAssignPublicIp(Boolean assignPublicIp) {
+    public void setAssignPublicIp(final Boolean assignPublicIp) {
         this.assignPublicIp = assignPublicIp;
     }
 
     @Generated
-    public void setAssignIpv6(Boolean assignIpv6) {
+    public void setAssignIpv6(final Boolean assignIpv6) {
         this.assignIpv6 = assignIpv6;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof UpdateTaskParams)) {
+        } else if (!(o instanceof UpdateTaskParams other)) {
             return false;
-        }
-        UpdateTaskParams other = (UpdateTaskParams)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$ocpus = this.getOcpus();
+            Object other$ocpus = other.getOcpus();
+            if (this$ocpus == null ? other$ocpus == null : this$ocpus.equals(other$ocpus)) {
+                Object this$memory = this.getMemory();
+                Object other$memory = other.getMemory();
+                if (this$memory == null ? other$memory == null : this$memory.equals(other$memory)) {
+                    Object this$disk = this.getDisk();
+                    Object other$disk = other.getDisk();
+                    if (this$disk == null ? other$disk == null : this$disk.equals(other$disk)) {
+                        Object this$vpusPerGB = this.getVpusPerGB();
+                        Object other$vpusPerGB = other.getVpusPerGB();
+                        if (this$vpusPerGB == null ? other$vpusPerGB == null : this$vpusPerGB.equals(other$vpusPerGB)) {
+                            Object this$createNumbers = this.getCreateNumbers();
+                            Object other$createNumbers = other.getCreateNumbers();
+                            if (this$createNumbers == null ? other$createNumbers == null : this$createNumbers.equals(other$createNumbers)) {
+                                Object this$interval = this.getInterval();
+                                Object other$interval = other.getInterval();
+                                if (this$interval == null ? other$interval == null : this$interval.equals(other$interval)) {
+                                    Object this$assignPublicIp = this.getAssignPublicIp();
+                                    Object other$assignPublicIp = other.getAssignPublicIp();
+                                    if (this$assignPublicIp == null ? other$assignPublicIp == null : this$assignPublicIp.equals(other$assignPublicIp)) {
+                                        Object this$assignIpv6 = this.getAssignIpv6();
+                                        Object other$assignIpv6 = other.getAssignIpv6();
+                                        if (this$assignIpv6 == null ? other$assignIpv6 == null : this$assignIpv6.equals(other$assignIpv6)) {
+                                            Object this$taskId = this.getTaskId();
+                                            Object other$taskId = other.getTaskId();
+                                            if (this$taskId == null ? other$taskId == null : this$taskId.equals(other$taskId)) {
+                                                Object this$architecture = this.getArchitecture();
+                                                Object other$architecture = other.getArchitecture();
+                                                if (this$architecture == null ? other$architecture == null : this$architecture.equals(other$architecture)) {
+                                                    Object this$rootPassword = this.getRootPassword();
+                                                    Object other$rootPassword = other.getRootPassword();
+                                                    if (this$rootPassword == null ? other$rootPassword == null : this$rootPassword.equals(other$rootPassword)) {
+                                                        Object this$operationSystem = this.getOperationSystem();
+                                                        Object other$operationSystem = other.getOperationSystem();
+                                                        if (this$operationSystem == null
+                                                            ? other$operationSystem == null
+                                                            : this$operationSystem.equals(other$operationSystem)) {
+                                                            Object this$customScript = this.getCustomScript();
+                                                            Object other$customScript = other.getCustomScript();
+                                                            return this$customScript == null
+                                                                ? other$customScript == null
+                                                                : this$customScript.equals(other$customScript);
+                                                        } else {
+                                                            return false;
+                                                        }
+                                                    } else {
+                                                        return false;
+                                                    }
+                                                } else {
+                                                    return false;
+                                                }
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        Double this$ocpus = this.getOcpus();
-        Double other$ocpus = other.getOcpus();
-        if (this$ocpus == null ? other$ocpus != null : !((Object)this$ocpus).equals(other$ocpus)) {
-            return false;
-        }
-        Double this$memory = this.getMemory();
-        Double other$memory = other.getMemory();
-        if (this$memory == null ? other$memory != null : !((Object)this$memory).equals(other$memory)) {
-            return false;
-        }
-        Integer this$disk = this.getDisk();
-        Integer other$disk = other.getDisk();
-        if (this$disk == null ? other$disk != null : !((Object)this$disk).equals(other$disk)) {
-            return false;
-        }
-        Integer this$vpusPerGB = this.getVpusPerGB();
-        Integer other$vpusPerGB = other.getVpusPerGB();
-        if (this$vpusPerGB == null ? other$vpusPerGB != null : !((Object)this$vpusPerGB).equals(other$vpusPerGB)) {
-            return false;
-        }
-        Integer this$createNumbers = this.getCreateNumbers();
-        Integer other$createNumbers = other.getCreateNumbers();
-        if (this$createNumbers == null ? other$createNumbers != null : !((Object)this$createNumbers).equals(other$createNumbers)) {
-            return false;
-        }
-        Integer this$interval = this.getInterval();
-        Integer other$interval = other.getInterval();
-        if (this$interval == null ? other$interval != null : !((Object)this$interval).equals(other$interval)) {
-            return false;
-        }
-        Boolean this$assignPublicIp = this.getAssignPublicIp();
-        Boolean other$assignPublicIp = other.getAssignPublicIp();
-        if (this$assignPublicIp == null ? other$assignPublicIp != null : !((Object)this$assignPublicIp).equals(other$assignPublicIp)) {
-            return false;
-        }
-        Boolean this$assignIpv6 = this.getAssignIpv6();
-        Boolean other$assignIpv6 = other.getAssignIpv6();
-        if (this$assignIpv6 == null ? other$assignIpv6 != null : !((Object)this$assignIpv6).equals(other$assignIpv6)) {
-            return false;
-        }
-        String this$taskId = this.getTaskId();
-        String other$taskId = other.getTaskId();
-        if (this$taskId == null ? other$taskId != null : !this$taskId.equals(other$taskId)) {
-            return false;
-        }
-        String this$architecture = this.getArchitecture();
-        String other$architecture = other.getArchitecture();
-        if (this$architecture == null ? other$architecture != null : !this$architecture.equals(other$architecture)) {
-            return false;
-        }
-        String this$rootPassword = this.getRootPassword();
-        String other$rootPassword = other.getRootPassword();
-        if (this$rootPassword == null ? other$rootPassword != null : !this$rootPassword.equals(other$rootPassword)) {
-            return false;
-        }
-        String this$operationSystem = this.getOperationSystem();
-        String other$operationSystem = other.getOperationSystem();
-        if (this$operationSystem == null ? other$operationSystem != null : !this$operationSystem.equals(other$operationSystem)) {
-            return false;
-        }
-        String this$customScript = this.getCustomScript();
-        String other$customScript = other.getCustomScript();
-        return !(this$customScript == null ? other$customScript != null : !this$customScript.equals(other$customScript));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof UpdateTaskParams;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        Double $ocpus = this.getOcpus();
-        result = result * 59 + ($ocpus == null ? 43 : ((Object)$ocpus).hashCode());
-        Double $memory = this.getMemory();
-        result = result * 59 + ($memory == null ? 43 : ((Object)$memory).hashCode());
-        Integer $disk = this.getDisk();
-        result = result * 59 + ($disk == null ? 43 : ((Object)$disk).hashCode());
-        Integer $vpusPerGB = this.getVpusPerGB();
-        result = result * 59 + ($vpusPerGB == null ? 43 : ((Object)$vpusPerGB).hashCode());
-        Integer $createNumbers = this.getCreateNumbers();
-        result = result * 59 + ($createNumbers == null ? 43 : ((Object)$createNumbers).hashCode());
-        Integer $interval = this.getInterval();
-        result = result * 59 + ($interval == null ? 43 : ((Object)$interval).hashCode());
-        Boolean $assignPublicIp = this.getAssignPublicIp();
-        result = result * 59 + ($assignPublicIp == null ? 43 : ((Object)$assignPublicIp).hashCode());
-        Boolean $assignIpv6 = this.getAssignIpv6();
-        result = result * 59 + ($assignIpv6 == null ? 43 : ((Object)$assignIpv6).hashCode());
-        String $taskId = this.getTaskId();
+        Object $ocpus = this.getOcpus();
+        result = result * 59 + ($ocpus == null ? 43 : $ocpus.hashCode());
+        Object $memory = this.getMemory();
+        result = result * 59 + ($memory == null ? 43 : $memory.hashCode());
+        Object $disk = this.getDisk();
+        result = result * 59 + ($disk == null ? 43 : $disk.hashCode());
+        Object $vpusPerGB = this.getVpusPerGB();
+        result = result * 59 + ($vpusPerGB == null ? 43 : $vpusPerGB.hashCode());
+        Object $createNumbers = this.getCreateNumbers();
+        result = result * 59 + ($createNumbers == null ? 43 : $createNumbers.hashCode());
+        Object $interval = this.getInterval();
+        result = result * 59 + ($interval == null ? 43 : $interval.hashCode());
+        Object $assignPublicIp = this.getAssignPublicIp();
+        result = result * 59 + ($assignPublicIp == null ? 43 : $assignPublicIp.hashCode());
+        Object $assignIpv6 = this.getAssignIpv6();
+        result = result * 59 + ($assignIpv6 == null ? 43 : $assignIpv6.hashCode());
+        Object $taskId = this.getTaskId();
         result = result * 59 + ($taskId == null ? 43 : $taskId.hashCode());
-        String $architecture = this.getArchitecture();
+        Object $architecture = this.getArchitecture();
         result = result * 59 + ($architecture == null ? 43 : $architecture.hashCode());
-        String $rootPassword = this.getRootPassword();
+        Object $rootPassword = this.getRootPassword();
         result = result * 59 + ($rootPassword == null ? 43 : $rootPassword.hashCode());
-        String $operationSystem = this.getOperationSystem();
+        Object $operationSystem = this.getOperationSystem();
         result = result * 59 + ($operationSystem == null ? 43 : $operationSystem.hashCode());
-        String $customScript = this.getCustomScript();
-        result = result * 59 + ($customScript == null ? 43 : $customScript.hashCode());
-        return result;
+        Object $customScript = this.getCustomScript();
+        return result * 59 + ($customScript == null ? 43 : $customScript.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "UpdateTaskParams(taskId=" + this.getTaskId() + ", architecture=" + this.getArchitecture() + ", ocpus=" + this.getOcpus() + ", memory=" + this.getMemory() + ", disk=" + this.getDisk() + ", vpusPerGB=" + this.getVpusPerGB() + ", createNumbers=" + this.getCreateNumbers() + ", interval=" + this.getInterval() + ", rootPassword=" + this.getRootPassword() + ", operationSystem=" + this.getOperationSystem() + ", customScript=" + this.getCustomScript() + ", assignPublicIp=" + this.getAssignPublicIp() + ", assignIpv6=" + this.getAssignIpv6() + ")";
+        return "UpdateTaskParams(taskId="
+            + this.getTaskId()
+            + ", architecture="
+            + this.getArchitecture()
+            + ", ocpus="
+            + this.getOcpus()
+            + ", memory="
+            + this.getMemory()
+            + ", disk="
+            + this.getDisk()
+            + ", vpusPerGB="
+            + this.getVpusPerGB()
+            + ", createNumbers="
+            + this.getCreateNumbers()
+            + ", interval="
+            + this.getInterval()
+            + ", rootPassword="
+            + this.getRootPassword()
+            + ", operationSystem="
+            + this.getOperationSystem()
+            + ", customScript="
+            + this.getCustomScript()
+            + ", assignPublicIp="
+            + this.getAssignPublicIp()
+            + ", assignIpv6="
+            + this.getAssignIpv6()
+            + ")";
     }
 }
-

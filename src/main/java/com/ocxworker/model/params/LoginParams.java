@@ -1,26 +1,18 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.params.LoginParams
- *  jakarta.validation.constraints.NotBlank
- *  lombok.Generated
- */
 package com.ocxworker.model.params;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Generated;
 
 public class LoginParams {
-    @NotBlank(message="\u8d26\u53f7\u4e0d\u80fd\u4e3a\u7a7a")
-    private @NotBlank(message="\u8d26\u53f7\u4e0d\u80fd\u4e3a\u7a7a") String account;
-    @NotBlank(message="\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a")
-    private @NotBlank(message="\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a") String password;
+    @NotBlank(
+        message = "账号不能为空"
+    )
+    private String account;
+    @NotBlank(
+        message = "密码不能为空"
+    )
+    private String password;
     private String mfaCode;
-
-    @Generated
-    public LoginParams() {
-    }
 
     @Generated
     public String getAccount() {
@@ -38,68 +30,69 @@ public class LoginParams {
     }
 
     @Generated
-    public void setAccount(String account) {
+    public void setAccount(final String account) {
         this.account = account;
     }
 
     @Generated
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
     @Generated
-    public void setMfaCode(String mfaCode) {
+    public void setMfaCode(final String mfaCode) {
         this.mfaCode = mfaCode;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof LoginParams)) {
+        } else if (!(o instanceof LoginParams other)) {
             return false;
-        }
-        LoginParams other = (LoginParams)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$account = this.getAccount();
+            Object other$account = other.getAccount();
+            if (this$account == null ? other$account == null : this$account.equals(other$account)) {
+                Object this$password = this.getPassword();
+                Object other$password = other.getPassword();
+                if (this$password == null ? other$password == null : this$password.equals(other$password)) {
+                    Object this$mfaCode = this.getMfaCode();
+                    Object other$mfaCode = other.getMfaCode();
+                    return this$mfaCode == null ? other$mfaCode == null : this$mfaCode.equals(other$mfaCode);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        String this$account = this.getAccount();
-        String other$account = other.getAccount();
-        if (this$account == null ? other$account != null : !this$account.equals(other$account)) {
-            return false;
-        }
-        String this$password = this.getPassword();
-        String other$password = other.getPassword();
-        if (this$password == null ? other$password != null : !this$password.equals(other$password)) {
-            return false;
-        }
-        String this$mfaCode = this.getMfaCode();
-        String other$mfaCode = other.getMfaCode();
-        return !(this$mfaCode == null ? other$mfaCode != null : !this$mfaCode.equals(other$mfaCode));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof LoginParams;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        String $account = this.getAccount();
+        Object $account = this.getAccount();
         result = result * 59 + ($account == null ? 43 : $account.hashCode());
-        String $password = this.getPassword();
+        Object $password = this.getPassword();
         result = result * 59 + ($password == null ? 43 : $password.hashCode());
-        String $mfaCode = this.getMfaCode();
-        result = result * 59 + ($mfaCode == null ? 43 : $mfaCode.hashCode());
-        return result;
+        Object $mfaCode = this.getMfaCode();
+        return result * 59 + ($mfaCode == null ? 43 : $mfaCode.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
         return "LoginParams(account=" + this.getAccount() + ", password=" + this.getPassword() + ", mfaCode=" + this.getMfaCode() + ")";
     }
 }
-

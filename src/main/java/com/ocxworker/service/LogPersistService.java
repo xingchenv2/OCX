@@ -1,25 +1,12 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.service.LogPersistService
- *  jakarta.annotation.PostConstruct
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.FileAttribute;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,8 +20,8 @@ import org.springframework.stereotype.Service;
 public class LogPersistService {
     @Generated
     private static final Logger log = LoggerFactory.getLogger(LogPersistService.class);
-    private static final long MAX_SIZE = 0x1400000L;
-    private static final long TRIM_TARGET = 0xF00000L;
+    private static final long MAX_SIZE = 20971520L;
+    private static final long TRIM_TARGET = 15728640L;
     private static final String LOG_FILE = "logs/app-ws.log";
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private Path logPath;
@@ -42,96 +29,93 @@ public class LogPersistService {
     @PostConstruct
     public void init() {
         String userDir = System.getProperty("user.dir");
-        this.logPath = Paths.get(userDir, LOG_FILE);
+        this.logPath = Paths.get(userDir, "logs/app-ws.log");
+
         try {
-            Files.createDirectories(this.logPath.getParent(), new FileAttribute[0]);
-            if (!Files.exists(this.logPath, new LinkOption[0])) {
-                Files.createFile(this.logPath, new FileAttribute[0]);
+            Files.createDirectories(this.logPath.getParent());
+            if (!Files.exists(this.logPath)) {
+                Files.createFile(this.logPath);
             }
-        }
-        catch (IOException e) {
-            log.error("Failed to init log file: {}", (Object)e.getMessage());
+        } catch (IOException var3) {
+            log.error("Failed to init log file: {}", var3.getMessage());
         }
     }
 
     public void appendLog(String line) {
         this.lock.writeLock().lock();
+
         try {
-            Files.writeString(this.logPath, (CharSequence)(line + "\n"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            if (Files.size(this.logPath) > 0x1400000L) {
+            Files.writeString(this.logPath, line + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            if (Files.size(this.logPath) > 20971520L) {
                 this.trimFile();
             }
-        }
-        catch (IOException iOException) {
-        }
-        finally {
+        } catch (IOException var6) {
+        } finally {
             this.lock.writeLock().unlock();
         }
     }
 
     public List<String> readAllLines() {
         this.lock.readLock().lock();
+
+        List e;
         try {
-            if (!Files.exists(this.logPath, new LinkOption[0])) {
-                List<String> list = Collections.emptyList();
-                return list;
+            if (Files.exists(this.logPath)) {
+                return Files.readAllLines(this.logPath, StandardCharsets.UTF_8);
             }
-            List<String> list = Files.readAllLines(this.logPath, StandardCharsets.UTF_8);
-            return list;
-        }
-        catch (IOException e) {
-            log.error("Failed to read log: {}", (Object)e.getMessage());
-            List<String> list = Collections.emptyList();
-            return list;
-        }
-        finally {
+
+            e = Collections.emptyList();
+        } catch (IOException var6) {
+            log.error("Failed to read log: {}", var6.getMessage());
+            return Collections.emptyList();
+        } finally {
             this.lock.readLock().unlock();
         }
+
+        return e;
     }
 
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
     public List<String> readLastLines(int maxLines) {
         this.lock.readLock().lock();
+
+        List var10;
         try {
-            if (!Files.exists(this.logPath, new LinkOption[0])) {
-                List<String> list = Collections.emptyList();
-                return list;
+            if (!Files.exists(this.logPath)) {
+                return Collections.emptyList();
             }
+
             List<String> all = Files.readAllLines(this.logPath, StandardCharsets.UTF_8);
-            if (all.size() <= maxLines) {
-                List<String> list = all;
-                return list;
+            if (all.size() > maxLines) {
+                return new ArrayList<>(all.subList(all.size() - maxLines, all.size()));
             }
-            ArrayList<String> arrayList = new ArrayList<String>(all.subList(all.size() - maxLines, all.size()));
-            return arrayList;
-        }
-        catch (IOException e) {
-            List<String> list = Collections.emptyList();
-            return list;
-        }
-        finally {
+
+            var10 = all;
+        } catch (IOException var7) {
+            return Collections.emptyList();
+        } finally {
             this.lock.readLock().unlock();
         }
+
+        return var10;
     }
 
     private void trimFile() {
         try {
             List<String> lines = Files.readAllLines(this.logPath, StandardCharsets.UTF_8);
             long currentSize = Files.size(this.logPath);
-            long toRemove = currentSize - 0xF00000L;
+            long toRemove = currentSize - 15728640L;
             long removed = 0L;
             int startIdx = 0;
-            for (int i = 0; i < lines.size() && removed < toRemove; removed += (long)(lines.get(i).getBytes(StandardCharsets.UTF_8).length + 1), ++i) {
+
+            for (int i = 0; i < lines.size() && removed < toRemove; i++) {
+                removed += (long)(lines.get(i).getBytes(StandardCharsets.UTF_8).length + 1);
                 startIdx = i + 1;
             }
+
             List<String> remaining = lines.subList(startIdx, lines.size());
-            Files.writeString(this.logPath, (CharSequence)(String.join((CharSequence)"\n", remaining) + "\n"), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
-        }
-        catch (IOException e) {
-            log.error("Failed to trim log file: {}", (Object)e.getMessage());
+            Files.writeString(this.logPath, String.join("\n", remaining) + "\n", StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException var10) {
+            log.error("Failed to trim log file: {}", var10.getMessage());
         }
     }
 }
-

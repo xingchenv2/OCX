@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.enums.TaskStatusEnum
- *  lombok.Generated
- */
 package com.ocxworker.enums;
 
 import lombok.Generated;
@@ -23,8 +16,7 @@ public enum TaskStatusEnum {
     }
 
     @Generated
-    private TaskStatusEnum(String status) {
+    private TaskStatusEnum(final String status) {
         this.status = status;
     }
 }
-

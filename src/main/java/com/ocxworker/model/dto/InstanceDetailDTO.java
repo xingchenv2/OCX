@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.dto.InstanceDetailDTO
- *  lombok.Generated
- */
 package com.ocxworker.model.dto;
 
 import java.util.ArrayList;
@@ -36,12 +29,8 @@ public class InstanceDetailDTO {
     private boolean bootVolumeQuotaExceeded;
     private String failureHint;
     private String resolvedTargetShape;
-    private List<String> adsExcludedNoShape = new ArrayList();
+    private List<String> adsExcludedNoShape = new ArrayList<>();
     private boolean allAdsExcludedNoShape;
-
-    @Generated
-    public InstanceDetailDTO() {
-    }
 
     @Generated
     public String getTaskId() {
@@ -174,269 +163,290 @@ public class InstanceDetailDTO {
     }
 
     @Generated
-    public void setTaskId(String taskId) {
+    public void setTaskId(final String taskId) {
         this.taskId = taskId;
     }
 
     @Generated
-    public void setUsername(String username) {
+    public void setUsername(final String username) {
         this.username = username;
     }
 
     @Generated
-    public void setRegion(String region) {
+    public void setRegion(final String region) {
         this.region = region;
     }
 
     @Generated
-    public void setArchitecture(String architecture) {
+    public void setArchitecture(final String architecture) {
         this.architecture = architecture;
     }
 
     @Generated
-    public void setCreateNumbers(Integer createNumbers) {
+    public void setCreateNumbers(final Integer createNumbers) {
         this.createNumbers = createNumbers;
     }
 
     @Generated
-    public void setInstanceId(String instanceId) {
+    public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
 
     @Generated
-    public void setInstanceName(String instanceName) {
+    public void setInstanceName(final String instanceName) {
         this.instanceName = instanceName;
     }
 
     @Generated
-    public void setShape(String shape) {
+    public void setShape(final String shape) {
         this.shape = shape;
     }
 
     @Generated
-    public void setOcpus(Double ocpus) {
+    public void setOcpus(final Double ocpus) {
         this.ocpus = ocpus;
     }
 
     @Generated
-    public void setMemory(Double memory) {
+    public void setMemory(final Double memory) {
         this.memory = memory;
     }
 
     @Generated
-    public void setDisk(Integer disk) {
+    public void setDisk(final Integer disk) {
         this.disk = disk;
     }
 
     @Generated
-    public void setPublicIp(String publicIp) {
+    public void setPublicIp(final String publicIp) {
         this.publicIp = publicIp;
     }
 
     @Generated
-    public void setPrivateIp(String privateIp) {
+    public void setPrivateIp(final String privateIp) {
         this.privateIp = privateIp;
     }
 
     @Generated
-    public void setIpv6Address(String ipv6Address) {
+    public void setIpv6Address(final String ipv6Address) {
         this.ipv6Address = ipv6Address;
     }
 
     @Generated
-    public void setImage(String image) {
+    public void setImage(final String image) {
         this.image = image;
     }
 
     @Generated
-    public void setRootPassword(String rootPassword) {
+    public void setRootPassword(final String rootPassword) {
         this.rootPassword = rootPassword;
     }
 
     @Generated
-    public void setSuccess(boolean success) {
+    public void setSuccess(final boolean success) {
         this.success = success;
     }
 
     @Generated
-    public void setDie(boolean die) {
+    public void setDie(final boolean die) {
         this.die = die;
     }
 
     @Generated
-    public void setNoShape(boolean noShape) {
+    public void setNoShape(final boolean noShape) {
         this.noShape = noShape;
     }
 
     @Generated
-    public void setNoPubVcn(boolean noPubVcn) {
+    public void setNoPubVcn(final boolean noPubVcn) {
         this.noPubVcn = noPubVcn;
     }
 
     @Generated
-    public void setOutOfCapacity(boolean outOfCapacity) {
+    public void setOutOfCapacity(final boolean outOfCapacity) {
         this.outOfCapacity = outOfCapacity;
     }
 
     @Generated
-    public void setBootVolumeQuotaExceeded(boolean bootVolumeQuotaExceeded) {
+    public void setBootVolumeQuotaExceeded(final boolean bootVolumeQuotaExceeded) {
         this.bootVolumeQuotaExceeded = bootVolumeQuotaExceeded;
     }
 
     @Generated
-    public void setFailureHint(String failureHint) {
+    public void setFailureHint(final String failureHint) {
         this.failureHint = failureHint;
     }
 
     @Generated
-    public void setResolvedTargetShape(String resolvedTargetShape) {
+    public void setResolvedTargetShape(final String resolvedTargetShape) {
         this.resolvedTargetShape = resolvedTargetShape;
     }
 
     @Generated
-    public void setAdsExcludedNoShape(List<String> adsExcludedNoShape) {
+    public void setAdsExcludedNoShape(final List<String> adsExcludedNoShape) {
         this.adsExcludedNoShape = adsExcludedNoShape;
     }
 
     @Generated
-    public void setAllAdsExcludedNoShape(boolean allAdsExcludedNoShape) {
+    public void setAllAdsExcludedNoShape(final boolean allAdsExcludedNoShape) {
         this.allAdsExcludedNoShape = allAdsExcludedNoShape;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof InstanceDetailDTO)) {
+        } else if (!(o instanceof InstanceDetailDTO other)) {
             return false;
-        }
-        InstanceDetailDTO other = (InstanceDetailDTO)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
-        }
-        if (this.isSuccess() != other.isSuccess()) {
+        } else if (this.isSuccess() != other.isSuccess()) {
             return false;
-        }
-        if (this.isDie() != other.isDie()) {
+        } else if (this.isDie() != other.isDie()) {
             return false;
-        }
-        if (this.isNoShape() != other.isNoShape()) {
+        } else if (this.isNoShape() != other.isNoShape()) {
             return false;
-        }
-        if (this.isNoPubVcn() != other.isNoPubVcn()) {
+        } else if (this.isNoPubVcn() != other.isNoPubVcn()) {
             return false;
-        }
-        if (this.isOutOfCapacity() != other.isOutOfCapacity()) {
+        } else if (this.isOutOfCapacity() != other.isOutOfCapacity()) {
             return false;
-        }
-        if (this.isBootVolumeQuotaExceeded() != other.isBootVolumeQuotaExceeded()) {
+        } else if (this.isBootVolumeQuotaExceeded() != other.isBootVolumeQuotaExceeded()) {
             return false;
-        }
-        if (this.isAllAdsExcludedNoShape() != other.isAllAdsExcludedNoShape()) {
+        } else if (this.isAllAdsExcludedNoShape() != other.isAllAdsExcludedNoShape()) {
             return false;
+        } else {
+            Object this$createNumbers = this.getCreateNumbers();
+            Object other$createNumbers = other.getCreateNumbers();
+            if (this$createNumbers == null ? other$createNumbers == null : this$createNumbers.equals(other$createNumbers)) {
+                Object this$ocpus = this.getOcpus();
+                Object other$ocpus = other.getOcpus();
+                if (this$ocpus == null ? other$ocpus == null : this$ocpus.equals(other$ocpus)) {
+                    Object this$memory = this.getMemory();
+                    Object other$memory = other.getMemory();
+                    if (this$memory == null ? other$memory == null : this$memory.equals(other$memory)) {
+                        Object this$disk = this.getDisk();
+                        Object other$disk = other.getDisk();
+                        if (this$disk == null ? other$disk == null : this$disk.equals(other$disk)) {
+                            Object this$taskId = this.getTaskId();
+                            Object other$taskId = other.getTaskId();
+                            if (this$taskId == null ? other$taskId == null : this$taskId.equals(other$taskId)) {
+                                Object this$username = this.getUsername();
+                                Object other$username = other.getUsername();
+                                if (this$username == null ? other$username == null : this$username.equals(other$username)) {
+                                    Object this$region = this.getRegion();
+                                    Object other$region = other.getRegion();
+                                    if (this$region == null ? other$region == null : this$region.equals(other$region)) {
+                                        Object this$architecture = this.getArchitecture();
+                                        Object other$architecture = other.getArchitecture();
+                                        if (this$architecture == null ? other$architecture == null : this$architecture.equals(other$architecture)) {
+                                            Object this$instanceId = this.getInstanceId();
+                                            Object other$instanceId = other.getInstanceId();
+                                            if (this$instanceId == null ? other$instanceId == null : this$instanceId.equals(other$instanceId)) {
+                                                Object this$instanceName = this.getInstanceName();
+                                                Object other$instanceName = other.getInstanceName();
+                                                if (this$instanceName == null ? other$instanceName == null : this$instanceName.equals(other$instanceName)) {
+                                                    Object this$shape = this.getShape();
+                                                    Object other$shape = other.getShape();
+                                                    if (this$shape == null ? other$shape == null : this$shape.equals(other$shape)) {
+                                                        Object this$publicIp = this.getPublicIp();
+                                                        Object other$publicIp = other.getPublicIp();
+                                                        if (this$publicIp == null ? other$publicIp == null : this$publicIp.equals(other$publicIp)) {
+                                                            Object this$privateIp = this.getPrivateIp();
+                                                            Object other$privateIp = other.getPrivateIp();
+                                                            if (this$privateIp == null ? other$privateIp == null : this$privateIp.equals(other$privateIp)) {
+                                                                Object this$ipv6Address = this.getIpv6Address();
+                                                                Object other$ipv6Address = other.getIpv6Address();
+                                                                if (this$ipv6Address == null
+                                                                    ? other$ipv6Address == null
+                                                                    : this$ipv6Address.equals(other$ipv6Address)) {
+                                                                    Object this$image = this.getImage();
+                                                                    Object other$image = other.getImage();
+                                                                    if (this$image == null ? other$image == null : this$image.equals(other$image)) {
+                                                                        Object this$rootPassword = this.getRootPassword();
+                                                                        Object other$rootPassword = other.getRootPassword();
+                                                                        if (this$rootPassword == null
+                                                                            ? other$rootPassword == null
+                                                                            : this$rootPassword.equals(other$rootPassword)) {
+                                                                            Object this$failureHint = this.getFailureHint();
+                                                                            Object other$failureHint = other.getFailureHint();
+                                                                            if (this$failureHint == null
+                                                                                ? other$failureHint == null
+                                                                                : this$failureHint.equals(other$failureHint)) {
+                                                                                Object this$resolvedTargetShape = this.getResolvedTargetShape();
+                                                                                Object other$resolvedTargetShape = other.getResolvedTargetShape();
+                                                                                if (this$resolvedTargetShape == null
+                                                                                    ? other$resolvedTargetShape == null
+                                                                                    : this$resolvedTargetShape.equals(other$resolvedTargetShape)) {
+                                                                                    Object this$adsExcludedNoShape = this.getAdsExcludedNoShape();
+                                                                                    Object other$adsExcludedNoShape = other.getAdsExcludedNoShape();
+                                                                                    return this$adsExcludedNoShape == null
+                                                                                        ? other$adsExcludedNoShape == null
+                                                                                        : this$adsExcludedNoShape.equals(other$adsExcludedNoShape);
+                                                                                } else {
+                                                                                    return false;
+                                                                                }
+                                                                            } else {
+                                                                                return false;
+                                                                            }
+                                                                        } else {
+                                                                            return false;
+                                                                        }
+                                                                    } else {
+                                                                        return false;
+                                                                    }
+                                                                } else {
+                                                                    return false;
+                                                                }
+                                                            } else {
+                                                                return false;
+                                                            }
+                                                        } else {
+                                                            return false;
+                                                        }
+                                                    } else {
+                                                        return false;
+                                                    }
+                                                } else {
+                                                    return false;
+                                                }
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        Integer this$createNumbers = this.getCreateNumbers();
-        Integer other$createNumbers = other.getCreateNumbers();
-        if (this$createNumbers == null ? other$createNumbers != null : !((Object)this$createNumbers).equals(other$createNumbers)) {
-            return false;
-        }
-        Double this$ocpus = this.getOcpus();
-        Double other$ocpus = other.getOcpus();
-        if (this$ocpus == null ? other$ocpus != null : !((Object)this$ocpus).equals(other$ocpus)) {
-            return false;
-        }
-        Double this$memory = this.getMemory();
-        Double other$memory = other.getMemory();
-        if (this$memory == null ? other$memory != null : !((Object)this$memory).equals(other$memory)) {
-            return false;
-        }
-        Integer this$disk = this.getDisk();
-        Integer other$disk = other.getDisk();
-        if (this$disk == null ? other$disk != null : !((Object)this$disk).equals(other$disk)) {
-            return false;
-        }
-        String this$taskId = this.getTaskId();
-        String other$taskId = other.getTaskId();
-        if (this$taskId == null ? other$taskId != null : !this$taskId.equals(other$taskId)) {
-            return false;
-        }
-        String this$username = this.getUsername();
-        String other$username = other.getUsername();
-        if (this$username == null ? other$username != null : !this$username.equals(other$username)) {
-            return false;
-        }
-        String this$region = this.getRegion();
-        String other$region = other.getRegion();
-        if (this$region == null ? other$region != null : !this$region.equals(other$region)) {
-            return false;
-        }
-        String this$architecture = this.getArchitecture();
-        String other$architecture = other.getArchitecture();
-        if (this$architecture == null ? other$architecture != null : !this$architecture.equals(other$architecture)) {
-            return false;
-        }
-        String this$instanceId = this.getInstanceId();
-        String other$instanceId = other.getInstanceId();
-        if (this$instanceId == null ? other$instanceId != null : !this$instanceId.equals(other$instanceId)) {
-            return false;
-        }
-        String this$instanceName = this.getInstanceName();
-        String other$instanceName = other.getInstanceName();
-        if (this$instanceName == null ? other$instanceName != null : !this$instanceName.equals(other$instanceName)) {
-            return false;
-        }
-        String this$shape = this.getShape();
-        String other$shape = other.getShape();
-        if (this$shape == null ? other$shape != null : !this$shape.equals(other$shape)) {
-            return false;
-        }
-        String this$publicIp = this.getPublicIp();
-        String other$publicIp = other.getPublicIp();
-        if (this$publicIp == null ? other$publicIp != null : !this$publicIp.equals(other$publicIp)) {
-            return false;
-        }
-        String this$privateIp = this.getPrivateIp();
-        String other$privateIp = other.getPrivateIp();
-        if (this$privateIp == null ? other$privateIp != null : !this$privateIp.equals(other$privateIp)) {
-            return false;
-        }
-        String this$ipv6Address = this.getIpv6Address();
-        String other$ipv6Address = other.getIpv6Address();
-        if (this$ipv6Address == null ? other$ipv6Address != null : !this$ipv6Address.equals(other$ipv6Address)) {
-            return false;
-        }
-        String this$image = this.getImage();
-        String other$image = other.getImage();
-        if (this$image == null ? other$image != null : !this$image.equals(other$image)) {
-            return false;
-        }
-        String this$rootPassword = this.getRootPassword();
-        String other$rootPassword = other.getRootPassword();
-        if (this$rootPassword == null ? other$rootPassword != null : !this$rootPassword.equals(other$rootPassword)) {
-            return false;
-        }
-        String this$failureHint = this.getFailureHint();
-        String other$failureHint = other.getFailureHint();
-        if (this$failureHint == null ? other$failureHint != null : !this$failureHint.equals(other$failureHint)) {
-            return false;
-        }
-        String this$resolvedTargetShape = this.getResolvedTargetShape();
-        String other$resolvedTargetShape = other.getResolvedTargetShape();
-        if (this$resolvedTargetShape == null ? other$resolvedTargetShape != null : !this$resolvedTargetShape.equals(other$resolvedTargetShape)) {
-            return false;
-        }
-        List this$adsExcludedNoShape = this.getAdsExcludedNoShape();
-        List other$adsExcludedNoShape = other.getAdsExcludedNoShape();
-        return !(this$adsExcludedNoShape == null ? other$adsExcludedNoShape != null : !((Object)this$adsExcludedNoShape).equals(other$adsExcludedNoShape));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof InstanceDetailDTO;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
@@ -447,50 +457,101 @@ public class InstanceDetailDTO {
         result = result * 59 + (this.isOutOfCapacity() ? 79 : 97);
         result = result * 59 + (this.isBootVolumeQuotaExceeded() ? 79 : 97);
         result = result * 59 + (this.isAllAdsExcludedNoShape() ? 79 : 97);
-        Integer $createNumbers = this.getCreateNumbers();
-        result = result * 59 + ($createNumbers == null ? 43 : ((Object)$createNumbers).hashCode());
-        Double $ocpus = this.getOcpus();
-        result = result * 59 + ($ocpus == null ? 43 : ((Object)$ocpus).hashCode());
-        Double $memory = this.getMemory();
-        result = result * 59 + ($memory == null ? 43 : ((Object)$memory).hashCode());
-        Integer $disk = this.getDisk();
-        result = result * 59 + ($disk == null ? 43 : ((Object)$disk).hashCode());
-        String $taskId = this.getTaskId();
+        Object $createNumbers = this.getCreateNumbers();
+        result = result * 59 + ($createNumbers == null ? 43 : $createNumbers.hashCode());
+        Object $ocpus = this.getOcpus();
+        result = result * 59 + ($ocpus == null ? 43 : $ocpus.hashCode());
+        Object $memory = this.getMemory();
+        result = result * 59 + ($memory == null ? 43 : $memory.hashCode());
+        Object $disk = this.getDisk();
+        result = result * 59 + ($disk == null ? 43 : $disk.hashCode());
+        Object $taskId = this.getTaskId();
         result = result * 59 + ($taskId == null ? 43 : $taskId.hashCode());
-        String $username = this.getUsername();
+        Object $username = this.getUsername();
         result = result * 59 + ($username == null ? 43 : $username.hashCode());
-        String $region = this.getRegion();
+        Object $region = this.getRegion();
         result = result * 59 + ($region == null ? 43 : $region.hashCode());
-        String $architecture = this.getArchitecture();
+        Object $architecture = this.getArchitecture();
         result = result * 59 + ($architecture == null ? 43 : $architecture.hashCode());
-        String $instanceId = this.getInstanceId();
+        Object $instanceId = this.getInstanceId();
         result = result * 59 + ($instanceId == null ? 43 : $instanceId.hashCode());
-        String $instanceName = this.getInstanceName();
+        Object $instanceName = this.getInstanceName();
         result = result * 59 + ($instanceName == null ? 43 : $instanceName.hashCode());
-        String $shape = this.getShape();
+        Object $shape = this.getShape();
         result = result * 59 + ($shape == null ? 43 : $shape.hashCode());
-        String $publicIp = this.getPublicIp();
+        Object $publicIp = this.getPublicIp();
         result = result * 59 + ($publicIp == null ? 43 : $publicIp.hashCode());
-        String $privateIp = this.getPrivateIp();
+        Object $privateIp = this.getPrivateIp();
         result = result * 59 + ($privateIp == null ? 43 : $privateIp.hashCode());
-        String $ipv6Address = this.getIpv6Address();
+        Object $ipv6Address = this.getIpv6Address();
         result = result * 59 + ($ipv6Address == null ? 43 : $ipv6Address.hashCode());
-        String $image = this.getImage();
+        Object $image = this.getImage();
         result = result * 59 + ($image == null ? 43 : $image.hashCode());
-        String $rootPassword = this.getRootPassword();
+        Object $rootPassword = this.getRootPassword();
         result = result * 59 + ($rootPassword == null ? 43 : $rootPassword.hashCode());
-        String $failureHint = this.getFailureHint();
+        Object $failureHint = this.getFailureHint();
         result = result * 59 + ($failureHint == null ? 43 : $failureHint.hashCode());
-        String $resolvedTargetShape = this.getResolvedTargetShape();
+        Object $resolvedTargetShape = this.getResolvedTargetShape();
         result = result * 59 + ($resolvedTargetShape == null ? 43 : $resolvedTargetShape.hashCode());
-        List $adsExcludedNoShape = this.getAdsExcludedNoShape();
-        result = result * 59 + ($adsExcludedNoShape == null ? 43 : ((Object)$adsExcludedNoShape).hashCode());
-        return result;
+        Object $adsExcludedNoShape = this.getAdsExcludedNoShape();
+        return result * 59 + ($adsExcludedNoShape == null ? 43 : $adsExcludedNoShape.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "InstanceDetailDTO(taskId=" + this.getTaskId() + ", username=" + this.getUsername() + ", region=" + this.getRegion() + ", architecture=" + this.getArchitecture() + ", createNumbers=" + this.getCreateNumbers() + ", instanceId=" + this.getInstanceId() + ", instanceName=" + this.getInstanceName() + ", shape=" + this.getShape() + ", ocpus=" + this.getOcpus() + ", memory=" + this.getMemory() + ", disk=" + this.getDisk() + ", publicIp=" + this.getPublicIp() + ", privateIp=" + this.getPrivateIp() + ", ipv6Address=" + this.getIpv6Address() + ", image=" + this.getImage() + ", rootPassword=" + this.getRootPassword() + ", success=" + this.isSuccess() + ", die=" + this.isDie() + ", noShape=" + this.isNoShape() + ", noPubVcn=" + this.isNoPubVcn() + ", outOfCapacity=" + this.isOutOfCapacity() + ", bootVolumeQuotaExceeded=" + this.isBootVolumeQuotaExceeded() + ", failureHint=" + this.getFailureHint() + ", resolvedTargetShape=" + this.getResolvedTargetShape() + ", adsExcludedNoShape=" + String.valueOf(this.getAdsExcludedNoShape()) + ", allAdsExcludedNoShape=" + this.isAllAdsExcludedNoShape() + ")";
+        return "InstanceDetailDTO(taskId="
+            + this.getTaskId()
+            + ", username="
+            + this.getUsername()
+            + ", region="
+            + this.getRegion()
+            + ", architecture="
+            + this.getArchitecture()
+            + ", createNumbers="
+            + this.getCreateNumbers()
+            + ", instanceId="
+            + this.getInstanceId()
+            + ", instanceName="
+            + this.getInstanceName()
+            + ", shape="
+            + this.getShape()
+            + ", ocpus="
+            + this.getOcpus()
+            + ", memory="
+            + this.getMemory()
+            + ", disk="
+            + this.getDisk()
+            + ", publicIp="
+            + this.getPublicIp()
+            + ", privateIp="
+            + this.getPrivateIp()
+            + ", ipv6Address="
+            + this.getIpv6Address()
+            + ", image="
+            + this.getImage()
+            + ", rootPassword="
+            + this.getRootPassword()
+            + ", success="
+            + this.isSuccess()
+            + ", die="
+            + this.isDie()
+            + ", noShape="
+            + this.isNoShape()
+            + ", noPubVcn="
+            + this.isNoPubVcn()
+            + ", outOfCapacity="
+            + this.isOutOfCapacity()
+            + ", bootVolumeQuotaExceeded="
+            + this.isBootVolumeQuotaExceeded()
+            + ", failureHint="
+            + this.getFailureHint()
+            + ", resolvedTargetShape="
+            + this.getResolvedTargetShape()
+            + ", adsExcludedNoShape="
+            + this.getAdsExcludedNoShape()
+            + ", allAdsExcludedNoShape="
+            + this.isAllAdsExcludedNoShape()
+            + ")";
     }
 }
-

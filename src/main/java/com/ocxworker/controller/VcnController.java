@@ -1,18 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.controller.VcnController
- *  com.ocxworker.exception.OciException
- *  com.ocxworker.model.vo.ResponseData
- *  com.ocxworker.service.VcnService
- *  com.ocxworker.service.VerifyCodeService
- *  jakarta.annotation.Resource
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestBody
- *  org.springframework.web.bind.annotation.RequestMapping
- *  org.springframework.web.bind.annotation.RestController
- */
 package com.ocxworker.controller;
 
 import com.ocxworker.exception.OciException;
@@ -28,292 +13,324 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @RestController
-@RequestMapping(value={"/api/oci/vcn"})
+@RequestMapping({"/api/oci/vcn"})
 public class VcnController {
     @Resource
     private VcnService vcnService;
     @Resource
     private VerifyCodeService verifyCodeService;
 
-    @PostMapping(value={"/list"})
+    @PostMapping({"/list"})
     public ResponseData<?> list(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listVcns(VcnController.str(params, (String)"id"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listVcns(str(params, "id"), reg(params)));
     }
 
-    @PostMapping(value={"/create"})
+    @PostMapping({"/create"})
     public ResponseData<?> create(@RequestBody Map<String, Object> params) {
-        this.vcnService.createVcn(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"compartmentId"), VcnController.str(params, (String)"displayName"), VcnController.str(params, (String)"cidrBlock"), VcnController.str(params, (String)"dnsLabel"), VcnController.bool(params, (String)"createIgw", (boolean)true), VcnController.reg(params));
+        this.vcnService
+            .createVcn(
+                str(params, "id"),
+                str(params, "compartmentId"),
+                str(params, "displayName"),
+                str(params, "cidrBlock"),
+                str(params, "dnsLabel"),
+                bool(params, "createIgw", true),
+                reg(params)
+            );
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/preview-delete"})
+    @PostMapping({"/preview-delete"})
     public ResponseData<?> previewDelete(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.previewVcnDelete(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.previewVcnDelete(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/delete"})
+    @PostMapping({"/delete"})
     public ResponseData<?> delete(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcn", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteVcn(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.bool(params, (String)"cascade", (boolean)true), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcn", str(params, "verifyCode"));
+        this.vcnService.deleteVcn(str(params, "id"), str(params, "vcnId"), bool(params, "cascade", true), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/update"})
+    @PostMapping({"/update"})
     public ResponseData<?> updateVcn(@RequestBody Map<String, Object> params) {
-        this.vcnService.updateVcn(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), null, VcnController.reg(params));
+        this.vcnService.updateVcn(str(params, "id"), str(params, "vcnId"), str(params, "displayName"), null, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/gateways"})
+    @PostMapping({"/gateways"})
     public ResponseData<?> listVcnGateways(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listVcnGateways(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listVcnGateways(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/subnet/list"})
+    @PostMapping({"/subnet/list"})
     public ResponseData<?> listSubnets(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listSubnets(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listSubnets(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/subnet/create"})
+    @PostMapping({"/subnet/create"})
     public ResponseData<?> createSubnet(@RequestBody Map<String, Object> params) {
-        this.vcnService.createSubnet(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), VcnController.str(params, (String)"cidrBlock"), VcnController.str(params, (String)"availabilityDomain"), VcnController.str(params, (String)"routeTableId"), params.get("prohibitPublicIp") == null ? null : Boolean.valueOf(VcnController.bool(params, (String)"prohibitPublicIp", (boolean)false)), VcnController.reg(params));
+        this.vcnService
+            .createSubnet(
+                str(params, "id"),
+                str(params, "vcnId"),
+                str(params, "displayName"),
+                str(params, "cidrBlock"),
+                str(params, "availabilityDomain"),
+                str(params, "routeTableId"),
+                params.get("prohibitPublicIp") == null ? null : bool(params, "prohibitPublicIp", false),
+                reg(params)
+            );
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/subnet/delete"})
+    @PostMapping({"/subnet/delete"})
     public ResponseData<?> deleteSubnet(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnSubnet", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteSubnet(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"subnetId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnSubnet", str(params, "verifyCode"));
+        this.vcnService.deleteSubnet(str(params, "id"), str(params, "subnetId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/subnet/update"})
+    @PostMapping({"/subnet/update"})
     public ResponseData<?> updateSubnet(@RequestBody Map<String, Object> params) {
         Object secIds = params.get("securityListIds");
-        ArrayList<String> sl = null;
-        if (secIds instanceof List) {
-            List list = (List)secIds;
-            sl = new ArrayList<String>();
+        List<String> sl = null;
+        if (secIds instanceof List<?> list) {
+            sl = new ArrayList<>();
+
             for (Object o : list) {
-                if (o == null) continue;
-                sl.add(String.valueOf(o));
+                if (o != null) {
+                    sl.add(String.valueOf(o));
+                }
             }
         }
-        this.vcnService.updateSubnet(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"subnetId"), VcnController.str(params, (String)"displayName"), VcnController.str(params, (String)"routeTableId"), sl, VcnController.reg(params));
+
+        this.vcnService.updateSubnet(str(params, "id"), str(params, "subnetId"), str(params, "displayName"), str(params, "routeTableId"), sl, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/igw/list"})
+    @PostMapping({"/igw/list"})
     public ResponseData<?> listIgw(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listInternetGateways(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listInternetGateways(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/igw/create"})
+    @PostMapping({"/igw/create"})
     public ResponseData<?> createIgw(@RequestBody Map<String, Object> params) {
-        this.vcnService.createInternetGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), VcnController.bool(params, (String)"isEnabled", (boolean)true), VcnController.reg(params));
+        this.vcnService
+            .createInternetGateway(str(params, "id"), str(params, "vcnId"), str(params, "displayName"), bool(params, "isEnabled", true), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/igw/delete"})
+    @PostMapping({"/igw/delete"})
     public ResponseData<?> deleteIgw(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnIgw", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteInternetGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"igwId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnIgw", str(params, "verifyCode"));
+        this.vcnService.deleteInternetGateway(str(params, "id"), str(params, "igwId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/igw/update"})
+    @PostMapping({"/igw/update"})
     public ResponseData<?> updateIgw(@RequestBody Map<String, Object> params) {
-        Boolean enabled = params.get("isEnabled") == null ? null : Boolean.valueOf(VcnController.bool(params, (String)"isEnabled", (boolean)true));
-        this.vcnService.updateInternetGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"igwId"), VcnController.str(params, (String)"displayName"), enabled, VcnController.reg(params));
+        Boolean enabled = params.get("isEnabled") == null ? null : bool(params, "isEnabled", true);
+        this.vcnService.updateInternetGateway(str(params, "id"), str(params, "igwId"), str(params, "displayName"), enabled, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/igw/setupDefaultRoutes"})
+    @PostMapping({"/igw/setupDefaultRoutes"})
     public ResponseData<?> setupIgwDefaultRoutes(@RequestBody Map<String, Object> params) {
-        this.vcnService.setupIgwDefaultRoutes(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"igwId"), VcnController.bool(params, (String)"addIpv6", (boolean)true), VcnController.reg(params));
+        this.vcnService.setupIgwDefaultRoutes(str(params, "id"), str(params, "vcnId"), str(params, "igwId"), bool(params, "addIpv6", true), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/nat/list"})
+    @PostMapping({"/nat/list"})
     public ResponseData<?> listNat(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listNatGateways(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listNatGateways(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/nat/create"})
+    @PostMapping({"/nat/create"})
     public ResponseData<?> createNat(@RequestBody Map<String, Object> params) {
-        this.vcnService.createNatGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), VcnController.reg(params));
+        this.vcnService.createNatGateway(str(params, "id"), str(params, "vcnId"), str(params, "displayName"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/nat/delete"})
+    @PostMapping({"/nat/delete"})
     public ResponseData<?> deleteNat(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnNat", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteNatGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"natId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnNat", str(params, "verifyCode"));
+        this.vcnService.deleteNatGateway(str(params, "id"), str(params, "natId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/nat/update"})
+    @PostMapping({"/nat/update"})
     public ResponseData<?> updateNat(@RequestBody Map<String, Object> params) {
-        Boolean block = params.get("blockTraffic") == null ? null : Boolean.valueOf(VcnController.bool(params, (String)"blockTraffic", (boolean)false));
-        this.vcnService.updateNatGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"natId"), VcnController.str(params, (String)"displayName"), block, VcnController.reg(params));
+        Boolean block = params.get("blockTraffic") == null ? null : bool(params, "blockTraffic", false);
+        this.vcnService.updateNatGateway(str(params, "id"), str(params, "natId"), str(params, "displayName"), block, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sg/list"})
+    @PostMapping({"/sg/list"})
     public ResponseData<?> listSg(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listServiceGateways(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listServiceGateways(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/sg/create"})
+    @PostMapping({"/sg/create"})
     public ResponseData<?> createSg(@RequestBody Map<String, Object> params) {
-        this.vcnService.createServiceGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), VcnController.reg(params));
+        this.vcnService.createServiceGateway(str(params, "id"), str(params, "vcnId"), str(params, "displayName"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sg/delete"})
+    @PostMapping({"/sg/delete"})
     public ResponseData<?> deleteSg(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnSg", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteServiceGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"sgId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnSg", str(params, "verifyCode"));
+        this.vcnService.deleteServiceGateway(str(params, "id"), str(params, "sgId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sg/update"})
+    @PostMapping({"/sg/update"})
     public ResponseData<?> updateSg(@RequestBody Map<String, Object> params) {
-        Boolean block = params.get("blockTraffic") == null ? null : Boolean.valueOf(VcnController.bool(params, (String)"blockTraffic", (boolean)false));
-        this.vcnService.updateServiceGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"sgId"), VcnController.str(params, (String)"displayName"), block, VcnController.reg(params));
+        Boolean block = params.get("blockTraffic") == null ? null : bool(params, "blockTraffic", false);
+        this.vcnService.updateServiceGateway(str(params, "id"), str(params, "sgId"), str(params, "displayName"), block, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/rt/list"})
+    @PostMapping({"/rt/list"})
     public ResponseData<?> listRt(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listRouteTables(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listRouteTables(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/rt/delete"})
+    @PostMapping({"/rt/delete"})
     public ResponseData<?> deleteRt(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnRt", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteRouteTable(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"rtId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnRt", str(params, "verifyCode"));
+        this.vcnService.deleteRouteTable(str(params, "id"), str(params, "rtId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/rt/detail"})
+    @PostMapping({"/rt/detail"})
     public ResponseData<?> rtDetail(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.getRouteTable(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"rtId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.getRouteTable(str(params, "id"), str(params, "rtId"), reg(params)));
     }
 
-    @PostMapping(value={"/rt/update"})
+    @PostMapping({"/rt/update"})
     public ResponseData<?> updateRt(@RequestBody Map<String, Object> params) {
-        ArrayList<Map> rules = null;
-        Object rr = params.get("routeRules");
-        if (rr instanceof List) {
-            List list = (List)rr;
-            rules = new ArrayList<Map>();
+        List<Map<String, Object>> rules = null;
+        if (params.get("routeRules") instanceof List<?> list) {
+            rules = new ArrayList<>();
+
             for (Object o : list) {
-                if (!(o instanceof Map)) continue;
-                rules.add((Map)o);
+                if (o instanceof Map) {
+                    rules.add((Map<String, Object>)o);
+                }
             }
         }
-        this.vcnService.updateRouteTable(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"rtId"), VcnController.str(params, (String)"displayName"), rules, VcnController.reg(params));
+
+        this.vcnService.updateRouteTable(str(params, "id"), str(params, "rtId"), str(params, "displayName"), rules, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sl/list"})
+    @PostMapping({"/sl/list"})
     public ResponseData<?> listSl(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listSecurityLists(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listSecurityLists(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/sl/delete"})
+    @PostMapping({"/sl/delete"})
     public ResponseData<?> deleteSl(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnSl", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteSecurityList(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"slId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnSl", str(params, "verifyCode"));
+        this.vcnService.deleteSecurityList(str(params, "id"), str(params, "slId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sl/detail"})
+    @PostMapping({"/sl/detail"})
     public ResponseData<?> slDetail(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.getSecurityList(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"slId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.getSecurityList(str(params, "id"), str(params, "slId"), reg(params)));
     }
 
-    @PostMapping(value={"/sl/addRule"})
+    @PostMapping({"/sl/addRule"})
     public ResponseData<?> slAddRule(@RequestBody Map<String, Object> params) {
-        this.vcnService.addSecurityListRule(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"slId"), VcnController.str(params, (String)"direction"), VcnController.str(params, (String)"protocol"), VcnController.str(params, (String)"source"), VcnController.str(params, (String)"portMin"), VcnController.str(params, (String)"portMax"), VcnController.str(params, (String)"description"), VcnController.reg(params));
+        this.vcnService
+            .addSecurityListRule(
+                str(params, "id"),
+                str(params, "slId"),
+                str(params, "direction"),
+                str(params, "protocol"),
+                str(params, "source"),
+                str(params, "portMin"),
+                str(params, "portMax"),
+                str(params, "description"),
+                reg(params)
+            );
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/sl/deleteRule"})
+    @PostMapping({"/sl/deleteRule"})
     public ResponseData<?> slDeleteRule(@RequestBody Map<String, Object> params) {
-        int i;
         Object idx = params.get("ruleIndex");
+
+        int i;
         try {
             i = Integer.parseInt(String.valueOf(idx));
+        } catch (Exception var5) {
+            throw new OciException("ruleIndex 非法");
         }
-        catch (Exception e) {
-            throw new OciException("ruleIndex \u975e\u6cd5");
-        }
-        this.vcnService.deleteSecurityListRule(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"slId"), VcnController.str(params, (String)"direction"), i, VcnController.reg(params));
+
+        this.vcnService.deleteSecurityListRule(str(params, "id"), str(params, "slId"), str(params, "direction"), i, reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/drg/list"})
+    @PostMapping({"/drg/list"})
     public ResponseData<?> listDrg(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listDrgs(VcnController.str(params, (String)"id"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listDrgs(str(params, "id"), reg(params)));
     }
 
-    @PostMapping(value={"/drg/create"})
+    @PostMapping({"/drg/create"})
     public ResponseData<?> createDrg(@RequestBody Map<String, Object> params) {
-        this.vcnService.createDrg(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"compartmentId"), VcnController.str(params, (String)"displayName"), VcnController.reg(params));
+        this.vcnService.createDrg(str(params, "id"), str(params, "compartmentId"), str(params, "displayName"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/drg/delete"})
+    @PostMapping({"/drg/delete"})
     public ResponseData<?> deleteDrg(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnDrg", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteDrg(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"drgId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnDrg", str(params, "verifyCode"));
+        this.vcnService.deleteDrg(str(params, "id"), str(params, "drgId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/lpg/list"})
+    @PostMapping({"/lpg/list"})
     public ResponseData<?> listLpg(@RequestBody Map<String, Object> params) {
-        return ResponseData.ok((Object)this.vcnService.listLocalPeeringGateways(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.reg(params)));
+        return ResponseData.ok(this.vcnService.listLocalPeeringGateways(str(params, "id"), str(params, "vcnId"), reg(params)));
     }
 
-    @PostMapping(value={"/lpg/create"})
+    @PostMapping({"/lpg/create"})
     public ResponseData<?> createLpg(@RequestBody Map<String, Object> params) {
-        this.vcnService.createLocalPeeringGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"vcnId"), VcnController.str(params, (String)"displayName"), VcnController.reg(params));
+        this.vcnService.createLocalPeeringGateway(str(params, "id"), str(params, "vcnId"), str(params, "displayName"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/lpg/connect"})
+    @PostMapping({"/lpg/connect"})
     public ResponseData<?> connectLpg(@RequestBody Map<String, Object> params) {
-        this.vcnService.connectLocalPeeringGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"lpgId"), VcnController.str(params, (String)"peerId"), VcnController.reg(params));
+        this.vcnService.connectLocalPeeringGateway(str(params, "id"), str(params, "lpgId"), str(params, "peerId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/lpg/delete"})
+    @PostMapping({"/lpg/delete"})
     public ResponseData<?> deleteLpg(@RequestBody Map<String, Object> params) {
-        this.verifyCodeService.verifyCode("deleteVcnLpg", VcnController.str(params, (String)"verifyCode"));
-        this.vcnService.deleteLocalPeeringGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"lpgId"), VcnController.reg(params));
+        this.verifyCodeService.verifyCode("deleteVcnLpg", str(params, "verifyCode"));
+        this.vcnService.deleteLocalPeeringGateway(str(params, "id"), str(params, "lpgId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/lpg/update"})
+    @PostMapping({"/lpg/update"})
     public ResponseData<?> updateLpg(@RequestBody Map<String, Object> params) {
-        this.vcnService.updateLocalPeeringGateway(VcnController.str(params, (String)"id"), VcnController.str(params, (String)"lpgId"), VcnController.str(params, (String)"displayName"), VcnController.reg(params));
+        this.vcnService.updateLocalPeeringGateway(str(params, "id"), str(params, "lpgId"), str(params, "displayName"), reg(params));
         return ResponseData.ok();
     }
 
     private static String reg(Map<String, Object> params) {
-        Object v;
-        Object object = v = params == null ? null : params.get("region");
+        Object v = params == null ? null : params.get("region");
         if (v == null) {
             return null;
+        } else {
+            String s = String.valueOf(v).trim();
+            return s.isEmpty() ? null : s;
         }
-        String s = String.valueOf(v).trim();
-        return s.isEmpty() ? null : s;
     }
 
     private static String str(Map<String, Object> params, String key) {
@@ -322,17 +339,14 @@ public class VcnController {
     }
 
     private static boolean bool(Map<String, Object> params, String key, boolean def) {
-        Object v;
-        Object object = v = params == null ? null : params.get(key);
+        Object v = params == null ? null : params.get(key);
         if (v == null) {
             return def;
-        }
-        if (v instanceof Boolean) {
-            Boolean b = (Boolean)v;
+        } else if (v instanceof Boolean b) {
             return b;
+        } else {
+            String s = String.valueOf(v).trim().toLowerCase();
+            return "true".equals(s) || "1".equals(s) || "yes".equals(s);
         }
-        String s = String.valueOf(v).trim().toLowerCase();
-        return "true".equals(s) || "1".equals(s) || "yes".equals(s);
     }
 }
-

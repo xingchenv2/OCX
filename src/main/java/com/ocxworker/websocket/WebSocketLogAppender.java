@@ -1,26 +1,14 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  ch.qos.logback.classic.spi.ILoggingEvent
- *  ch.qos.logback.classic.spi.IThrowableProxy
- *  ch.qos.logback.core.AppenderBase
- *  com.ocxworker.websocket.LogWebSocketHandler
- *  com.ocxworker.websocket.WebSocketLogAppender
- */
 package com.ocxworker.websocket;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.AppenderBase;
-import com.ocxworker.websocket.LogWebSocketHandler;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-public class WebSocketLogAppender
-extends AppenderBase<ILoggingEvent> {
+public class WebSocketLogAppender extends AppenderBase<ILoggingEvent> {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     protected void append(ILoggingEvent event) {
@@ -35,11 +23,10 @@ extends AppenderBase<ILoggingEvent> {
                     line.append(": ").append(tp.getMessage());
                 }
             }
-            LogWebSocketHandler.broadcast((String)line.toString());
-        }
-        catch (Exception e) {
-            System.err.println("[WebSocketLogAppender] broadcast failed: " + e.getMessage());
+
+            LogWebSocketHandler.broadcast(line.toString());
+        } catch (Exception var5) {
+            System.err.println("[WebSocketLogAppender] broadcast failed: " + var5.getMessage());
         }
     }
 }
-

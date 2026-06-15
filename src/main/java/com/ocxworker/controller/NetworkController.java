@@ -1,17 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.controller.NetworkController
- *  com.ocxworker.exception.OciException
- *  com.ocxworker.model.vo.ResponseData
- *  com.ocxworker.service.NetworkService
- *  jakarta.annotation.Resource
- *  org.springframework.web.bind.annotation.PostMapping
- *  org.springframework.web.bind.annotation.RequestBody
- *  org.springframework.web.bind.annotation.RequestMapping
- *  org.springframework.web.bind.annotation.RestController
- */
 package com.ocxworker.controller;
 
 import com.ocxworker.exception.OciException;
@@ -27,115 +13,137 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @RestController
-@RequestMapping(value={"/api/oci/network"})
+@RequestMapping({"/api/oci/network"})
 public class NetworkController {
     @Resource
     private NetworkService networkService;
 
-    @PostMapping(value={"/vcns"})
+    @PostMapping({"/vcns"})
     public ResponseData<?> listVcns(@RequestBody Map<String, String> params) {
-        return ResponseData.ok((Object)this.networkService.listVcns(params.get("id"), NetworkController.reg(params)));
+        return ResponseData.ok(this.networkService.listVcns(params.get("id"), reg(params)));
     }
 
-    @PostMapping(value={"/securityRules"})
+    @PostMapping({"/securityRules"})
     public ResponseData<?> listSecurityRules(@RequestBody Map<String, String> params) {
-        return ResponseData.ok((Object)this.networkService.listSecurityRulesByInstance(params.get("id"), params.get("instanceId"), NetworkController.reg(params)));
+        return ResponseData.ok(this.networkService.listSecurityRulesByInstance(params.get("id"), params.get("instanceId"), reg(params)));
     }
 
-    @PostMapping(value={"/releaseAllPorts"})
+    @PostMapping({"/releaseAllPorts"})
     public ResponseData<?> releaseAllPorts(@RequestBody Map<String, String> params) {
-        return ResponseData.ok((Object)this.networkService.releaseAllPortsByInstance(params.get("id"), params.get("instanceId"), NetworkController.reg(params)));
+        return ResponseData.ok(this.networkService.releaseAllPortsByInstance(params.get("id"), params.get("instanceId"), reg(params)));
     }
 
-    @PostMapping(value={"/releaseOciPreset"})
+    @PostMapping({"/releaseOciPreset"})
     public ResponseData<?> releaseOciPreset(@RequestBody Map<String, String> params) {
-        return ResponseData.ok((Object)this.networkService.releaseOciPresetByInstance(params.get("id"), params.get("instanceId"), NetworkController.reg(params)));
+        return ResponseData.ok(this.networkService.releaseOciPresetByInstance(params.get("id"), params.get("instanceId"), reg(params)));
     }
 
-    @PostMapping(value={"/addSecurityRule"})
+    @PostMapping({"/addSecurityRule"})
     public ResponseData<?> addSecurityRule(@RequestBody Map<String, String> params) {
-        this.networkService.addSecurityRule(params.get("id"), params.get("instanceId"), params.get("direction"), params.get("protocol"), params.get("source"), params.get("portMin"), params.get("portMax"), params.get("description"), NetworkController.reg(params));
+        this.networkService
+            .addSecurityRule(
+                params.get("id"),
+                params.get("instanceId"),
+                params.get("direction"),
+                params.get("protocol"),
+                params.get("source"),
+                params.get("portMin"),
+                params.get("portMax"),
+                params.get("description"),
+                reg(params)
+            );
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/deleteSecurityRule"})
+    @PostMapping({"/deleteSecurityRule"})
     public ResponseData<?> deleteSecurityRule(@RequestBody Map<String, String> params) {
-        int idx;
         String idxStr = params.get("ruleIndex");
-        if (idxStr == null || idxStr.isBlank()) {
-            throw new OciException("ruleIndex \u4e0d\u80fd\u4e3a\u7a7a");
+        if (idxStr != null && !idxStr.isBlank()) {
+            int idx;
+            try {
+                idx = Integer.parseInt(idxStr);
+            } catch (NumberFormatException var5) {
+                throw new OciException("ruleIndex 格式非法");
+            }
+
+            this.networkService.deleteSecurityRule(params.get("id"), params.get("instanceId"), params.get("direction"), idx, reg(params));
+            return ResponseData.ok();
+        } else {
+            throw new OciException("ruleIndex 不能为空");
         }
-        try {
-            idx = Integer.parseInt(idxStr);
-        }
-        catch (NumberFormatException e) {
-            throw new OciException("ruleIndex \u683c\u5f0f\u975e\u6cd5");
-        }
-        this.networkService.deleteSecurityRule(params.get("id"), params.get("instanceId"), params.get("direction"), idx, NetworkController.reg(params));
-        return ResponseData.ok();
     }
 
-    @PostMapping(value={"/changeIp"})
+    @PostMapping({"/changeIp"})
     public ResponseData<?> changeIp(@RequestBody Map<String, Object> params) {
-        this.networkService.changePublicIp(params.get("id") == null ? null : String.valueOf(params.get("id")), params.get("instanceId") == null ? null : String.valueOf(params.get("instanceId")), NetworkController.extractStringList((Object)params.get("cidrFilters")), NetworkController.regObj(params));
+        this.networkService
+            .changePublicIp(
+                params.get("id") == null ? null : String.valueOf(params.get("id")),
+                params.get("instanceId") == null ? null : String.valueOf(params.get("instanceId")),
+                extractStringList(params.get("cidrFilters")),
+                regObj(params)
+            );
         return ResponseData.ok();
     }
 
     private static List<String> extractStringList(Object raw) {
-        List list;
-        if (!(raw instanceof List) || (list = (List)raw).isEmpty()) {
-            return Collections.emptyList();
+        if (raw instanceof List<?> list && !list.isEmpty()) {
+            List<String> out = new ArrayList<>(list.size());
+
+            for (Object o : list) {
+                if (o != null) {
+                    out.add(String.valueOf(o));
+                }
+            }
+
+            return out;
         }
-        ArrayList<String> out = new ArrayList<String>(list.size());
-        for (Object o : list) {
-            if (o == null) continue;
-            out.add(String.valueOf(o));
-        }
-        return out;
+
+        return Collections.emptyList();
     }
 
-    @PostMapping(value={"/assignEphemeralIp"})
+    @PostMapping({"/assignEphemeralIp"})
     public ResponseData<?> assignEphemeralIp(@RequestBody Map<String, String> params) {
-        return ResponseData.ok((Object)this.networkService.assignEphemeralPublicIp(params.get("id"), params.get("instanceId"), params.get("privateIpId"), NetworkController.reg(params)));
+        return ResponseData.ok(this.networkService.assignEphemeralPublicIp(params.get("id"), params.get("instanceId"), params.get("privateIpId"), reg(params)));
     }
 
-    @PostMapping(value={"/deletePublicIp"})
+    @PostMapping({"/deletePublicIp"})
     public ResponseData<?> deletePublicIp(@RequestBody Map<String, String> params) {
-        this.networkService.deletePublicIpByPrivateIpId(params.get("id"), params.get("privateIpId"), NetworkController.reg(params));
+        this.networkService.deletePublicIpByPrivateIpId(params.get("id"), params.get("privateIpId"), reg(params));
         return ResponseData.ok();
     }
 
-    @PostMapping(value={"/deleteSecondaryIp"})
+    @PostMapping({"/deleteSecondaryIp"})
     public ResponseData<?> deleteSecondaryIp(@RequestBody Map<String, String> params) {
-        this.networkService.deleteSecondaryIp(params.get("id"), params.get("privateIpId"), NetworkController.reg(params));
+        this.networkService.deleteSecondaryIp(params.get("id"), params.get("privateIpId"), reg(params));
         return ResponseData.ok();
     }
 
     private static String reg(Map<String, String> params) {
         if (params == null) {
             return null;
+        } else {
+            String s = params.get("region");
+            if (s == null) {
+                return null;
+            } else {
+                s = s.trim();
+                return s.isEmpty() ? null : s;
+            }
         }
-        String s = params.get("region");
-        if (s == null) {
-            return null;
-        }
-        return (s = s.trim()).isEmpty() ? null : s;
     }
 
     private static String regObj(Map<String, Object> params) {
         if (params == null) {
             return null;
+        } else {
+            Object v = params.get("region");
+            if (v == null) {
+                return null;
+            } else {
+                String s = String.valueOf(v).trim();
+                return s.isEmpty() ? null : s;
+            }
         }
-        Object v = params.get("region");
-        if (v == null) {
-            return null;
-        }
-        String s = String.valueOf(v).trim();
-        return s.isEmpty() ? null : s;
     }
 }
-

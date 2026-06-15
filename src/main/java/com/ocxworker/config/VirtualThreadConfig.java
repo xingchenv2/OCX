@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.config.VirtualThreadConfig
- *  jakarta.annotation.PreDestroy
- *  org.springframework.context.annotation.Bean
- *  org.springframework.context.annotation.Configuration
- */
 package com.ocxworker.config;
 
 import jakarta.annotation.PreDestroy;
@@ -32,11 +23,9 @@ public class VirtualThreadConfig {
             if (!VIRTUAL_EXECUTOR.awaitTermination(3L, TimeUnit.SECONDS)) {
                 VIRTUAL_EXECUTOR.shutdownNow();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException var2) {
             VIRTUAL_EXECUTOR.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
 }
-

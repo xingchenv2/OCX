@@ -1,29 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  cn.hutool.core.text.CharSequenceUtil
- *  cn.hutool.core.util.StrUtil
- *  com.baomidou.mybatisplus.core.conditions.Wrapper
- *  com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper
- *  com.fasterxml.jackson.databind.JsonNode
- *  com.ocxworker.enums.SysCfgEnum
- *  com.ocxworker.enums.TaskStatusEnum
- *  com.ocxworker.mapper.OciCreateTaskMapper
- *  com.ocxworker.mapper.OciUserMapper
- *  com.ocxworker.model.entity.OciCreateTask
- *  com.ocxworker.model.entity.OciUser
- *  com.ocxworker.service.LoginSecurityService
- *  com.ocxworker.service.NotificationService
- *  com.ocxworker.service.SystemService
- *  com.ocxworker.service.TelegramBotCommandService
- *  com.ocxworker.service.VerifyCodeService
- *  jakarta.annotation.Resource
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.stereotype.Service
- */
 package com.ocxworker.service;
 
 import cn.hutool.core.text.CharSequenceUtil;
@@ -37,12 +11,7 @@ import com.ocxworker.mapper.OciCreateTaskMapper;
 import com.ocxworker.mapper.OciUserMapper;
 import com.ocxworker.model.entity.OciCreateTask;
 import com.ocxworker.model.entity.OciUser;
-import com.ocxworker.service.LoginSecurityService;
-import com.ocxworker.service.NotificationService;
-import com.ocxworker.service.SystemService;
-import com.ocxworker.service.VerifyCodeService;
 import jakarta.annotation.Resource;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,9 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @Service
 public class TelegramBotCommandService {
     @Generated
@@ -76,60 +42,50 @@ public class TelegramBotCommandService {
     private OciUserMapper userMapper;
 
     public void handleTelegramMessage(JsonNode message) {
-        String cmd;
-        if (!this.verifyCodeService.isTgConfigured()) {
-            return;
-        }
-        if (message == null || !message.has("chat") || !message.has("text")) {
-            return;
-        }
-        String configuredChat = TelegramBotCommandService.normalizeChatIdStr((String)this.notificationService.getKvValue(SysCfgEnum.TG_CHAT_ID));
-        if (StrUtil.isBlank((CharSequence)configuredChat)) {
-            return;
-        }
-        String chatId = TelegramBotCommandService.normalizeChatIdFromMessage((JsonNode)message);
-        if (!configuredChat.equals(chatId)) {
-            String raw = message.path("text").asText("").trim();
-            if (raw.startsWith("/")) {
-                log.warn("[TG] \u659c\u6760\u547d\u4ee4\u5df2\u9001\u8fbe\u4f46 chat_id \u4e0d\u5339\u914d\uff1a\u6536\u5230 [{}]\uff0c\u9762\u677f\u914d\u7f6e TG_CHAT_ID=[{}]\u3002\u8bf7\u7528 @userinfobot \u67e5\u770b\u672c\u5bf9\u8bdd id \u5e76\u5199\u5165\u7cfb\u7edf\u8bbe\u7f6e\u3002", (Object)chatId, (Object)configuredChat);
-            } else {
-                log.debug("[TG] ignore message from chat {}", (Object)chatId);
-            }
-            return;
-        }
-        String raw = message.get("text").asText("").trim();
-        if (raw.isEmpty()) {
-            return;
-        }
-        String firstToken = raw.split("\\s+")[0];
-        String lower = firstToken.toLowerCase();
-        switch (cmd = lower.contains("@") ? lower.substring(0, lower.indexOf(64)) : lower) {
-            case "/start": {
-                this.handleStart();
-                break;
-            }
-            case "/stop": {
-                this.handleStop();
-                break;
-            }
-            case "/logs": {
-                this.handleLogs();
-                break;
-            }
-            case "/state": {
-                this.handleState();
-                break;
-            }
-            case "/bans": {
-                this.handleBans();
-                break;
+        if (this.verifyCodeService.isTgConfigured()) {
+            if (message != null && message.has("chat") && message.has("text")) {
+                String configuredChat = normalizeChatIdStr(this.notificationService.getKvValue(SysCfgEnum.TG_CHAT_ID));
+                if (!StrUtil.isBlank(configuredChat)) {
+                    String chatId = normalizeChatIdFromMessage(message);
+                    if (!configuredChat.equals(chatId)) {
+                        String raw = message.path("text").asText("").trim();
+                        if (raw.startsWith("/")) {
+                            log.warn("[TG] 斜杠命令已送达但 chat_id 不匹配：收到 [{}]，面板配置 TG_CHAT_ID=[{}]。请用 @userinfobot 查看本对话 id 并写入系统设置。", chatId, configuredChat);
+                        } else {
+                            log.debug("[TG] ignore message from chat {}", chatId);
+                        }
+                    } else {
+                        String raw = message.get("text").asText("").trim();
+                        if (!raw.isEmpty()) {
+                            String firstToken = raw.split("\\s+")[0];
+                            String lower = firstToken.toLowerCase();
+                            String cmd = lower.contains("@") ? lower.substring(0, lower.indexOf(64)) : lower;
+                            switch (cmd) {
+                                case "/start":
+                                    this.handleStart();
+                                    break;
+                                case "/stop":
+                                    this.handleStop();
+                                    break;
+                                case "/logs":
+                                    this.handleLogs();
+                                    break;
+                                case "/state":
+                                    this.handleState();
+                                    break;
+                                case "/bans":
+                                    this.handleBans();
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
     private void handleStart() {
         this.loginSecurityService.setSitePaused(false);
-        this.notificationService.sendMessage("OCX\u5df2\u542f\u52a8");
+        this.notificationService.sendMessage("OCIWorker已启动");
     }
 
     private void handleBans() {
@@ -138,85 +94,91 @@ public class TelegramBotCommandService {
 
     private void handleStop() {
         this.loginSecurityService.setSitePaused(true);
-        this.notificationService.sendMessage("\u5df2\u6682\u505c\u5168\u7ad9 API \u8bbf\u95ee\u3002");
+        this.notificationService.sendMessage("已暂停全站 API 访问。");
     }
 
     private void handleLogs() {
-        List list = this.taskMapper.selectList((Wrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciCreateTask::getStatus, (Object)TaskStatusEnum.RUNNING.getStatus())).orderByDesc(OciCreateTask::getCreateTime));
+        List<OciCreateTask> list = this.taskMapper
+            .selectList(
+                (Wrapper)(new LambdaQueryWrapper<OciCreateTask>().eq(OciCreateTask::getStatus, TaskStatusEnum.RUNNING.getStatus()))
+                    .orderByDesc(OciCreateTask::getCreateTime)
+            );
         if (list.isEmpty()) {
-            this.notificationService.sendMessage("\u5f53\u524d\u65e0\u8fd0\u884c\u4e2d\u7684\u5f00\u673a\u4efb\u52a1\u3002");
-            return;
-        }
-        Set userIds = list.stream().map(OciCreateTask::getUserId).filter(CharSequenceUtil::isNotBlank).collect(Collectors.toCollection(LinkedHashSet::new));
-        HashMap<String, String> idToName = new HashMap<String, String>();
-        if (!userIds.isEmpty()) {
-            List users = this.userMapper.selectList((Wrapper)new LambdaQueryWrapper().in(OciUser::getId, (Collection)userIds));
-            for (Object u : users) {
-                idToName.put(u.getId(), StrUtil.blankToDefault((CharSequence)u.getUsername(), (String)u.getId()));
+            this.notificationService.sendMessage("当前无运行中的开机任务。");
+        } else {
+            Set<String> userIds = list.stream()
+                .map(OciCreateTask::getUserId)
+                .filter(CharSequenceUtil::isNotBlank)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+            Map<String, String> idToName = new HashMap<>();
+            if (!userIds.isEmpty()) {
+                for (OciUser u : this.userMapper.selectList((Wrapper)new LambdaQueryWrapper<OciUser>().in(OciUser::getId, userIds))) {
+                    idToName.put(u.getId(), StrUtil.blankToDefault(u.getUsername(), u.getId()));
+                }
             }
+
+            int tenantN = userIds.size();
+            StringBuilder sb = new StringBuilder();
+            sb.append("当前有 ").append(tenantN).append(" 个租户正在开机（").append(list.size()).append(" 个运行中任务）。\n\n");
+
+            for (String uid : userIds) {
+                sb.append("· ").append(idToName.getOrDefault(uid, uid)).append('\n');
+            }
+
+            String out = sb.toString().trim();
+            if (out.length() > 3800) {
+                out = out.substring(0, 3800) + "\n…";
+            }
+
+            this.notificationService.sendMessage(out);
         }
-        int tenantN = userIds.size();
-        StringBuilder sb = new StringBuilder();
-        sb.append("\u5f53\u524d\u6709 ").append(tenantN).append(" \u4e2a\u79df\u6237\u6b63\u5728\u5f00\u673a\uff08").append(list.size()).append(" \u4e2a\u8fd0\u884c\u4e2d\u4efb\u52a1\uff09\u3002\n\n");
-        for (String uid : userIds) {
-            sb.append("\u00b7 ").append(idToName.getOrDefault(uid, uid)).append('\n');
-        }
-        Object out = sb.toString().trim();
-        if (((String)out).length() > 3800) {
-            out = ((String)out).substring(0, 3800) + "\n\u2026";
-        }
-        this.notificationService.sendMessage((String)out);
     }
 
     private void handleState() {
-        Map g = this.systemService.getGlance();
+        Map<String, Object> g = this.systemService.getGlance();
         boolean paused = this.loginSecurityService.isSitePaused();
-        String norm = paused ? "\u5168\u7ad9\u5df2\u6682\u505c" : "\u5168\u7ad9\u8fd0\u884c\u4e2d";
+        String norm = paused ? "全站已暂停" : "全站运行中";
         long tenants = 0L;
-        Object tc = g.get("tenantCount");
-        if (tc instanceof Number) {
-            Number n = (Number)tc;
+        if (g.get("tenantCount") instanceof Number n) {
             tenants = n.longValue();
         }
+
         long tasks = 0L;
-        Object rc = g.get("runningTaskCount");
-        if (rc instanceof Number) {
-            Number n = (Number)rc;
+        if (g.get("runningTaskCount") instanceof Number n) {
             tasks = n.longValue();
         }
-        String cpu = g.get("cpuUsage") != null ? String.valueOf(g.get("cpuUsage")) : "\u2014";
-        String mem = g.get("memoryUsage") != null ? String.valueOf(g.get("memoryUsage")) : "\u2014";
-        String msg = String.format("\u72b6\u6001\uff1a%s\n\u79df\u6237\uff1a%d\n\u8fd0\u884c\u4e2d\u4efb\u52a1\uff1a%d\nCPU\uff1a%s%%\n\u5185\u5b58\uff1a%s%%", norm, tenants, tasks, cpu, mem);
+
+        String cpu = g.get("cpuUsage") != null ? String.valueOf(g.get("cpuUsage")) : "—";
+        String mem = g.get("memoryUsage") != null ? String.valueOf(g.get("memoryUsage")) : "—";
+        String msg = String.format("状态：%s\n租户：%d\n运行中任务：%d\nCPU：%s%%\n内存：%s%%", norm, tenants, tasks, cpu, mem);
         this.notificationService.sendMessage(msg);
     }
 
     private static String normalizeChatIdFromMessage(JsonNode message) {
         JsonNode id = message.path("chat").path("id");
-        return TelegramBotCommandService.normalizeChatIdNode((JsonNode)id);
+        return normalizeChatIdNode(id);
     }
 
     private static String normalizeChatIdNode(JsonNode id) {
         if (id == null || id.isMissingNode() || id.isNull()) {
             return "";
+        } else if (!id.isNumber()) {
+            return StrUtil.trim(id.asText(""));
+        } else {
+            return id.isIntegralNumber() ? Long.toString(id.longValue()) : id.asText("");
         }
-        if (id.isNumber()) {
-            if (id.isIntegralNumber()) {
-                return Long.toString(id.longValue());
-            }
-            return id.asText("");
-        }
-        return StrUtil.trim((CharSequence)id.asText(""));
     }
 
     private static String normalizeChatIdStr(String s) {
-        if (StrUtil.isBlank((CharSequence)s)) {
+        if (StrUtil.isBlank(s)) {
             return "";
+        } else {
+            String t = StrUtil.trim(s);
+            if (t.startsWith("\"") && t.endsWith("\"") || t.startsWith("'") && t.endsWith("'")) {
+                t = t.substring(1, t.length() - 1).trim();
+            }
+
+            return t;
         }
-        String t = StrUtil.trim((CharSequence)s);
-        if (t.startsWith("\"") && t.endsWith("\"") || t.startsWith("'") && t.endsWith("'")) {
-            t = t.substring(1, t.length() - 1).trim();
-        }
-        return t;
     }
 }
-

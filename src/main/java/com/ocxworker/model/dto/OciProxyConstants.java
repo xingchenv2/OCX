@@ -1,9 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.dto.OciProxyConstants
- */
 package com.ocxworker.model.dto;
 
 public final class OciProxyConstants {
@@ -14,4 +8,3 @@ public final class OciProxyConstants {
     private OciProxyConstants() {
     }
 }
-

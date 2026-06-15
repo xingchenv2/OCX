@@ -965,6 +965,10 @@ spring:
     exclude:
       - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
       - org.springframework.ai.autoconfigure.openai.OpenAiConnectionAutoConfiguration
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
+      - org.springframework.ai.autoconfigure.openai.OpenAiConnectionAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: "$(yaml_escape "${jdbc_url}")"

@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.params.TenantBatchMoveGroupParams
- *  jakarta.validation.constraints.NotBlank
- *  jakarta.validation.constraints.NotEmpty
- *  lombok.Generated
- */
 package com.ocxworker.model.params;
 
 import jakarta.validation.constraints.NotBlank;
@@ -15,15 +6,15 @@ import java.util.List;
 import lombok.Generated;
 
 public class TenantBatchMoveGroupParams {
-    @NotEmpty(message="\u8bf7\u9009\u62e9\u8981\u79fb\u52a8\u7684\u79df\u6237")
-    private @NotEmpty(message="\u8bf7\u9009\u62e9\u8981\u79fb\u52a8\u7684\u79df\u6237") List<String> idList;
-    @NotBlank(message="\u8bf7\u9009\u62e9\u4e00\u7ea7\u5206\u7ec4")
-    private @NotBlank(message="\u8bf7\u9009\u62e9\u4e00\u7ea7\u5206\u7ec4") String groupLevel1;
+    @NotEmpty(
+        message = "请选择要移动的租户"
+    )
+    private List<String> idList;
+    @NotBlank(
+        message = "请选择一级分组"
+    )
+    private String groupLevel1;
     private String groupLevel2;
-
-    @Generated
-    public TenantBatchMoveGroupParams() {
-    }
 
     @Generated
     public List<String> getIdList() {
@@ -41,68 +32,75 @@ public class TenantBatchMoveGroupParams {
     }
 
     @Generated
-    public void setIdList(List<String> idList) {
+    public void setIdList(final List<String> idList) {
         this.idList = idList;
     }
 
     @Generated
-    public void setGroupLevel1(String groupLevel1) {
+    public void setGroupLevel1(final String groupLevel1) {
         this.groupLevel1 = groupLevel1;
     }
 
     @Generated
-    public void setGroupLevel2(String groupLevel2) {
+    public void setGroupLevel2(final String groupLevel2) {
         this.groupLevel2 = groupLevel2;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof TenantBatchMoveGroupParams)) {
+        } else if (!(o instanceof TenantBatchMoveGroupParams other)) {
             return false;
-        }
-        TenantBatchMoveGroupParams other = (TenantBatchMoveGroupParams)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$idList = this.getIdList();
+            Object other$idList = other.getIdList();
+            if (this$idList == null ? other$idList == null : this$idList.equals(other$idList)) {
+                Object this$groupLevel1 = this.getGroupLevel1();
+                Object other$groupLevel1 = other.getGroupLevel1();
+                if (this$groupLevel1 == null ? other$groupLevel1 == null : this$groupLevel1.equals(other$groupLevel1)) {
+                    Object this$groupLevel2 = this.getGroupLevel2();
+                    Object other$groupLevel2 = other.getGroupLevel2();
+                    return this$groupLevel2 == null ? other$groupLevel2 == null : this$groupLevel2.equals(other$groupLevel2);
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        List this$idList = this.getIdList();
-        List other$idList = other.getIdList();
-        if (this$idList == null ? other$idList != null : !((Object)this$idList).equals(other$idList)) {
-            return false;
-        }
-        String this$groupLevel1 = this.getGroupLevel1();
-        String other$groupLevel1 = other.getGroupLevel1();
-        if (this$groupLevel1 == null ? other$groupLevel1 != null : !this$groupLevel1.equals(other$groupLevel1)) {
-            return false;
-        }
-        String this$groupLevel2 = this.getGroupLevel2();
-        String other$groupLevel2 = other.getGroupLevel2();
-        return !(this$groupLevel2 == null ? other$groupLevel2 != null : !this$groupLevel2.equals(other$groupLevel2));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof TenantBatchMoveGroupParams;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        List $idList = this.getIdList();
-        result = result * 59 + ($idList == null ? 43 : ((Object)$idList).hashCode());
-        String $groupLevel1 = this.getGroupLevel1();
+        Object $idList = this.getIdList();
+        result = result * 59 + ($idList == null ? 43 : $idList.hashCode());
+        Object $groupLevel1 = this.getGroupLevel1();
         result = result * 59 + ($groupLevel1 == null ? 43 : $groupLevel1.hashCode());
-        String $groupLevel2 = this.getGroupLevel2();
-        result = result * 59 + ($groupLevel2 == null ? 43 : $groupLevel2.hashCode());
-        return result;
+        Object $groupLevel2 = this.getGroupLevel2();
+        return result * 59 + ($groupLevel2 == null ? 43 : $groupLevel2.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "TenantBatchMoveGroupParams(idList=" + String.valueOf(this.getIdList()) + ", groupLevel1=" + this.getGroupLevel1() + ", groupLevel2=" + this.getGroupLevel2() + ")";
+        return "TenantBatchMoveGroupParams(idList="
+            + this.getIdList()
+            + ", groupLevel1="
+            + this.getGroupLevel1()
+            + ", groupLevel2="
+            + this.getGroupLevel2()
+            + ")";
     }
 }
-

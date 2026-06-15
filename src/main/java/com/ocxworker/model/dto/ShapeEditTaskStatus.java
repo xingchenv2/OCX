@@ -1,14 +1,5 @@
-/*
- * Decompiled with CFR 0.152.
- * Could not load the following classes:
- *  com.ocxworker.model.dto.ShapeEditTaskStatus
- *  com.ocxworker.model.dto.ShapeEditTaskStatus$ShapeEditTaskStatusBuilder
- *  com.ocxworker.model.entity.ShapeEditTask$Status
- *  lombok.Generated
- */
 package com.ocxworker.model.dto;
 
-import com.ocxworker.model.dto.ShapeEditTaskStatus;
 import com.ocxworker.model.entity.ShapeEditTask;
 import java.time.Instant;
 import java.util.Map;
@@ -33,8 +24,8 @@ public class ShapeEditTaskStatus {
     private Map<String, Object> result;
 
     @Generated
-    public static ShapeEditTaskStatusBuilder builder() {
-        return new ShapeEditTaskStatusBuilder();
+    public static ShapeEditTaskStatus.ShapeEditTaskStatusBuilder builder() {
+        return new ShapeEditTaskStatus.ShapeEditTaskStatusBuilder();
     }
 
     @Generated
@@ -118,171 +109,174 @@ public class ShapeEditTaskStatus {
     }
 
     @Generated
-    public void setTaskId(String taskId) {
+    public void setTaskId(final String taskId) {
         this.taskId = taskId;
     }
 
     @Generated
-    public void setInstanceId(String instanceId) {
+    public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
 
     @Generated
-    public void setTenantId(String tenantId) {
+    public void setTenantId(final String tenantId) {
         this.tenantId = tenantId;
     }
 
     @Generated
-    public void setRegion(String region) {
+    public void setRegion(final String region) {
         this.region = region;
     }
 
     @Generated
-    public void setStatus(ShapeEditTask.Status status) {
+    public void setStatus(final ShapeEditTask.Status status) {
         this.status = status;
     }
 
     @Generated
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
     @Generated
-    public void setRetryCount(int retryCount) {
+    public void setRetryCount(final int retryCount) {
         this.retryCount = retryCount;
     }
 
     @Generated
-    public void setMaxRetries(int maxRetries) {
+    public void setMaxRetries(final int maxRetries) {
         this.maxRetries = maxRetries;
     }
 
     @Generated
-    public void setPending(boolean pending) {
+    public void setPending(final boolean pending) {
         this.pending = pending;
     }
 
     @Generated
-    public void setPaused(boolean paused) {
+    public void setPaused(final boolean paused) {
         this.paused = paused;
     }
 
     @Generated
-    public void setStopped(boolean stopped) {
+    public void setStopped(final boolean stopped) {
         this.stopped = stopped;
     }
 
     @Generated
-    public void setTerminal(boolean terminal) {
+    public void setTerminal(final boolean terminal) {
         this.terminal = terminal;
     }
 
     @Generated
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
     @Generated
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 
     @Generated
-    public void setFinishedAt(Instant finishedAt) {
+    public void setFinishedAt(final Instant finishedAt) {
         this.finishedAt = finishedAt;
     }
 
     @Generated
-    public void setResult(Map<String, Object> result) {
+    public void setResult(final Map<String, Object> result) {
         this.result = result;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof ShapeEditTaskStatus)) {
+        } else if (!(o instanceof ShapeEditTaskStatus other)) {
             return false;
-        }
-        ShapeEditTaskStatus other = (ShapeEditTaskStatus)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
-        }
-        if (this.getRetryCount() != other.getRetryCount()) {
+        } else if (this.getRetryCount() != other.getRetryCount()) {
             return false;
-        }
-        if (this.getMaxRetries() != other.getMaxRetries()) {
+        } else if (this.getMaxRetries() != other.getMaxRetries()) {
             return false;
-        }
-        if (this.isPending() != other.isPending()) {
+        } else if (this.isPending() != other.isPending()) {
             return false;
-        }
-        if (this.isPaused() != other.isPaused()) {
+        } else if (this.isPaused() != other.isPaused()) {
             return false;
-        }
-        if (this.isStopped() != other.isStopped()) {
+        } else if (this.isStopped() != other.isStopped()) {
             return false;
-        }
-        if (this.isTerminal() != other.isTerminal()) {
+        } else if (this.isTerminal() != other.isTerminal()) {
             return false;
+        } else {
+            Object this$taskId = this.getTaskId();
+            Object other$taskId = other.getTaskId();
+            if (this$taskId == null ? other$taskId == null : this$taskId.equals(other$taskId)) {
+                Object this$instanceId = this.getInstanceId();
+                Object other$instanceId = other.getInstanceId();
+                if (this$instanceId == null ? other$instanceId == null : this$instanceId.equals(other$instanceId)) {
+                    Object this$tenantId = this.getTenantId();
+                    Object other$tenantId = other.getTenantId();
+                    if (this$tenantId == null ? other$tenantId == null : this$tenantId.equals(other$tenantId)) {
+                        Object this$region = this.getRegion();
+                        Object other$region = other.getRegion();
+                        if (this$region == null ? other$region == null : this$region.equals(other$region)) {
+                            Object this$status = this.getStatus();
+                            Object other$status = other.getStatus();
+                            if (this$status == null ? other$status == null : this$status.equals(other$status)) {
+                                Object this$message = this.getMessage();
+                                Object other$message = other.getMessage();
+                                if (this$message == null ? other$message == null : this$message.equals(other$message)) {
+                                    Object this$createdAt = this.getCreatedAt();
+                                    Object other$createdAt = other.getCreatedAt();
+                                    if (this$createdAt == null ? other$createdAt == null : this$createdAt.equals(other$createdAt)) {
+                                        Object this$updatedAt = this.getUpdatedAt();
+                                        Object other$updatedAt = other.getUpdatedAt();
+                                        if (this$updatedAt == null ? other$updatedAt == null : this$updatedAt.equals(other$updatedAt)) {
+                                            Object this$finishedAt = this.getFinishedAt();
+                                            Object other$finishedAt = other.getFinishedAt();
+                                            if (this$finishedAt == null ? other$finishedAt == null : this$finishedAt.equals(other$finishedAt)) {
+                                                Object this$result = this.getResult();
+                                                Object other$result = other.getResult();
+                                                return this$result == null ? other$result == null : this$result.equals(other$result);
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        String this$taskId = this.getTaskId();
-        String other$taskId = other.getTaskId();
-        if (this$taskId == null ? other$taskId != null : !this$taskId.equals(other$taskId)) {
-            return false;
-        }
-        String this$instanceId = this.getInstanceId();
-        String other$instanceId = other.getInstanceId();
-        if (this$instanceId == null ? other$instanceId != null : !this$instanceId.equals(other$instanceId)) {
-            return false;
-        }
-        String this$tenantId = this.getTenantId();
-        String other$tenantId = other.getTenantId();
-        if (this$tenantId == null ? other$tenantId != null : !this$tenantId.equals(other$tenantId)) {
-            return false;
-        }
-        String this$region = this.getRegion();
-        String other$region = other.getRegion();
-        if (this$region == null ? other$region != null : !this$region.equals(other$region)) {
-            return false;
-        }
-        ShapeEditTask.Status this$status = this.getStatus();
-        ShapeEditTask.Status other$status = other.getStatus();
-        if (this$status == null ? other$status != null : !this$status.equals(other$status)) {
-            return false;
-        }
-        String this$message = this.getMessage();
-        String other$message = other.getMessage();
-        if (this$message == null ? other$message != null : !this$message.equals(other$message)) {
-            return false;
-        }
-        Instant this$createdAt = this.getCreatedAt();
-        Instant other$createdAt = other.getCreatedAt();
-        if (this$createdAt == null ? other$createdAt != null : !((Object)this$createdAt).equals(other$createdAt)) {
-            return false;
-        }
-        Instant this$updatedAt = this.getUpdatedAt();
-        Instant other$updatedAt = other.getUpdatedAt();
-        if (this$updatedAt == null ? other$updatedAt != null : !((Object)this$updatedAt).equals(other$updatedAt)) {
-            return false;
-        }
-        Instant this$finishedAt = this.getFinishedAt();
-        Instant other$finishedAt = other.getFinishedAt();
-        if (this$finishedAt == null ? other$finishedAt != null : !((Object)this$finishedAt).equals(other$finishedAt)) {
-            return false;
-        }
-        Map this$result = this.getResult();
-        Map other$result = other.getResult();
-        return !(this$result == null ? other$result != null : !((Object)this$result).equals(other$result));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof ShapeEditTaskStatus;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
@@ -292,32 +286,64 @@ public class ShapeEditTaskStatus {
         result = result * 59 + (this.isPaused() ? 79 : 97);
         result = result * 59 + (this.isStopped() ? 79 : 97);
         result = result * 59 + (this.isTerminal() ? 79 : 97);
-        String $taskId = this.getTaskId();
+        Object $taskId = this.getTaskId();
         result = result * 59 + ($taskId == null ? 43 : $taskId.hashCode());
-        String $instanceId = this.getInstanceId();
+        Object $instanceId = this.getInstanceId();
         result = result * 59 + ($instanceId == null ? 43 : $instanceId.hashCode());
-        String $tenantId = this.getTenantId();
+        Object $tenantId = this.getTenantId();
         result = result * 59 + ($tenantId == null ? 43 : $tenantId.hashCode());
-        String $region = this.getRegion();
+        Object $region = this.getRegion();
         result = result * 59 + ($region == null ? 43 : $region.hashCode());
-        ShapeEditTask.Status $status = this.getStatus();
+        Object $status = this.getStatus();
         result = result * 59 + ($status == null ? 43 : $status.hashCode());
-        String $message = this.getMessage();
+        Object $message = this.getMessage();
         result = result * 59 + ($message == null ? 43 : $message.hashCode());
-        Instant $createdAt = this.getCreatedAt();
-        result = result * 59 + ($createdAt == null ? 43 : ((Object)$createdAt).hashCode());
-        Instant $updatedAt = this.getUpdatedAt();
-        result = result * 59 + ($updatedAt == null ? 43 : ((Object)$updatedAt).hashCode());
-        Instant $finishedAt = this.getFinishedAt();
-        result = result * 59 + ($finishedAt == null ? 43 : ((Object)$finishedAt).hashCode());
-        Map $result = this.getResult();
-        result = result * 59 + ($result == null ? 43 : ((Object)$result).hashCode());
-        return result;
+        Object $createdAt = this.getCreatedAt();
+        result = result * 59 + ($createdAt == null ? 43 : $createdAt.hashCode());
+        Object $updatedAt = this.getUpdatedAt();
+        result = result * 59 + ($updatedAt == null ? 43 : $updatedAt.hashCode());
+        Object $finishedAt = this.getFinishedAt();
+        result = result * 59 + ($finishedAt == null ? 43 : $finishedAt.hashCode());
+        Object $result = this.getResult();
+        return result * 59 + ($result == null ? 43 : $result.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "ShapeEditTaskStatus(taskId=" + this.getTaskId() + ", instanceId=" + this.getInstanceId() + ", tenantId=" + this.getTenantId() + ", region=" + this.getRegion() + ", status=" + String.valueOf(this.getStatus()) + ", message=" + this.getMessage() + ", retryCount=" + this.getRetryCount() + ", maxRetries=" + this.getMaxRetries() + ", pending=" + this.isPending() + ", paused=" + this.isPaused() + ", stopped=" + this.isStopped() + ", terminal=" + this.isTerminal() + ", createdAt=" + String.valueOf(this.getCreatedAt()) + ", updatedAt=" + String.valueOf(this.getUpdatedAt()) + ", finishedAt=" + String.valueOf(this.getFinishedAt()) + ", result=" + String.valueOf(this.getResult()) + ")";
+        return "ShapeEditTaskStatus(taskId="
+            + this.getTaskId()
+            + ", instanceId="
+            + this.getInstanceId()
+            + ", tenantId="
+            + this.getTenantId()
+            + ", region="
+            + this.getRegion()
+            + ", status="
+            + this.getStatus()
+            + ", message="
+            + this.getMessage()
+            + ", retryCount="
+            + this.getRetryCount()
+            + ", maxRetries="
+            + this.getMaxRetries()
+            + ", pending="
+            + this.isPending()
+            + ", paused="
+            + this.isPaused()
+            + ", stopped="
+            + this.isStopped()
+            + ", terminal="
+            + this.isTerminal()
+            + ", createdAt="
+            + this.getCreatedAt()
+            + ", updatedAt="
+            + this.getUpdatedAt()
+            + ", finishedAt="
+            + this.getFinishedAt()
+            + ", result="
+            + this.getResult()
+            + ")";
     }
 
     @Generated
@@ -325,7 +351,24 @@ public class ShapeEditTaskStatus {
     }
 
     @Generated
-    public ShapeEditTaskStatus(String taskId, String instanceId, String tenantId, String region, ShapeEditTask.Status status, String message, int retryCount, int maxRetries, boolean pending, boolean paused, boolean stopped, boolean terminal, Instant createdAt, Instant updatedAt, Instant finishedAt, Map<String, Object> result) {
+    public ShapeEditTaskStatus(
+        final String taskId,
+        final String instanceId,
+        final String tenantId,
+        final String region,
+        final ShapeEditTask.Status status,
+        final String message,
+        final int retryCount,
+        final int maxRetries,
+        final boolean pending,
+        final boolean paused,
+        final boolean stopped,
+        final boolean terminal,
+        final Instant createdAt,
+        final Instant updatedAt,
+        final Instant finishedAt,
+        final Map<String, Object> result
+    ) {
         this.taskId = taskId;
         this.instanceId = instanceId;
         this.tenantId = tenantId;
@@ -343,5 +386,200 @@ public class ShapeEditTaskStatus {
         this.finishedAt = finishedAt;
         this.result = result;
     }
-}
 
+    @Generated
+    public static class ShapeEditTaskStatusBuilder {
+        @Generated
+        private String taskId;
+        @Generated
+        private String instanceId;
+        @Generated
+        private String tenantId;
+        @Generated
+        private String region;
+        @Generated
+        private ShapeEditTask.Status status;
+        @Generated
+        private String message;
+        @Generated
+        private int retryCount;
+        @Generated
+        private int maxRetries;
+        @Generated
+        private boolean pending;
+        @Generated
+        private boolean paused;
+        @Generated
+        private boolean stopped;
+        @Generated
+        private boolean terminal;
+        @Generated
+        private Instant createdAt;
+        @Generated
+        private Instant updatedAt;
+        @Generated
+        private Instant finishedAt;
+        @Generated
+        private Map<String, Object> result;
+
+        @Generated
+        ShapeEditTaskStatusBuilder() {
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder taskId(final String taskId) {
+            this.taskId = taskId;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder instanceId(final String instanceId) {
+            this.instanceId = instanceId;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder tenantId(final String tenantId) {
+            this.tenantId = tenantId;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder region(final String region) {
+            this.region = region;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder status(final ShapeEditTask.Status status) {
+            this.status = status;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder message(final String message) {
+            this.message = message;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder retryCount(final int retryCount) {
+            this.retryCount = retryCount;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder maxRetries(final int maxRetries) {
+            this.maxRetries = maxRetries;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder pending(final boolean pending) {
+            this.pending = pending;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder paused(final boolean paused) {
+            this.paused = paused;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder stopped(final boolean stopped) {
+            this.stopped = stopped;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder terminal(final boolean terminal) {
+            this.terminal = terminal;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder createdAt(final Instant createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder updatedAt(final Instant updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder finishedAt(final Instant finishedAt) {
+            this.finishedAt = finishedAt;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus.ShapeEditTaskStatusBuilder result(final Map<String, Object> result) {
+            this.result = result;
+            return this;
+        }
+
+        @Generated
+        public ShapeEditTaskStatus build() {
+            return new ShapeEditTaskStatus(
+                this.taskId,
+                this.instanceId,
+                this.tenantId,
+                this.region,
+                this.status,
+                this.message,
+                this.retryCount,
+                this.maxRetries,
+                this.pending,
+                this.paused,
+                this.stopped,
+                this.terminal,
+                this.createdAt,
+                this.updatedAt,
+                this.finishedAt,
+                this.result
+            );
+        }
+
+        @Generated
+        @Override
+        public String toString() {
+            return "ShapeEditTaskStatus.ShapeEditTaskStatusBuilder(taskId="
+                + this.taskId
+                + ", instanceId="
+                + this.instanceId
+                + ", tenantId="
+                + this.tenantId
+                + ", region="
+                + this.region
+                + ", status="
+                + this.status
+                + ", message="
+                + this.message
+                + ", retryCount="
+                + this.retryCount
+                + ", maxRetries="
+                + this.maxRetries
+                + ", pending="
+                + this.pending
+                + ", paused="
+                + this.paused
+                + ", stopped="
+                + this.stopped
+                + ", terminal="
+                + this.terminal
+                + ", createdAt="
+                + this.createdAt
+                + ", updatedAt="
+                + this.updatedAt
+                + ", finishedAt="
+                + this.finishedAt
+                + ", result="
+                + this.result
+                + ")";
+        }
+    }
+}

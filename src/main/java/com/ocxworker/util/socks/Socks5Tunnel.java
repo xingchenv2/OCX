@@ -1,57 +1,50 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.util.socks.Socks5Tunnel
- */
 package com.ocxworker.util.socks;
 
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.Proxy.Type;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 public final class Socks5Tunnel {
     private static final Object JDK_SOCKS_CONNECT_LOCK = new Object();
 
     private Socks5Tunnel() {
     }
 
-    /*
-     * Enabled aggressive exception aggregation
-     */
-    public static Socket connect(String proxyHost, int proxyPort, String proxyUser, String proxyPass, String targetHost, int targetPort, boolean remoteDns, int connectTimeoutMs) throws IOException {
-        String u = Socks5Tunnel.normalizeSocksCredential((String)proxyUser);
-        String p = Socks5Tunnel.normalizeSocksCredential((String)proxyPass);
+    public static Socket connect(
+        String proxyHost, int proxyPort, String proxyUser, String proxyPass, String targetHost, int targetPort, boolean remoteDns, int connectTimeoutMs
+    ) throws IOException {
+        final String u = normalizeSocksCredential(proxyUser);
+        final String p = normalizeSocksCredential(proxyPass);
         boolean hasCreds = !u.isEmpty() || !p.isEmpty();
-        Proxy proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
-        InetSocketAddress remote = remoteDns ? InetSocketAddress.createUnresolved(targetHost, targetPort) : new InetSocketAddress(InetAddress.getByName(targetHost), targetPort);
-        Object object = JDK_SOCKS_CONNECT_LOCK;
-        synchronized (object) {
+        Proxy proxy = new Proxy(Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+        SocketAddress remote = remoteDns
+            ? InetSocketAddress.createUnresolved(targetHost, targetPort)
+            : new InetSocketAddress(InetAddress.getByName(targetHost), targetPort);
+        synchronized (JDK_SOCKS_CONNECT_LOCK) {
             Authenticator old = Authenticator.getDefault();
+
+            Socket e;
             try {
-                Socket socket;
                 if (hasCreds) {
                     Authenticator.setDefault(new Authenticator() {
                         @Override
-                        protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
-                            return new java.net.PasswordAuthentication(u, p.toCharArray());
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(u, p.toCharArray());
                         }
                     });
                 } else {
                     Authenticator.setDefault(new Authenticator() {
-                        @Override
-                        protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
-                            return null;
-                        }
                     });
                 }
+
                 Socket s = new Socket(proxy);
+
                 try {
                     s.setTcpNoDelay(true);
                     if (connectTimeoutMs > 0) {
@@ -59,38 +52,39 @@ public final class Socks5Tunnel {
                     } else {
                         s.connect(remote);
                     }
+
                     s.setSoTimeout(connectTimeoutMs > 0 ? Math.max(connectTimeoutMs, 30000) : 30000);
-                    socket = s;
-                }
-                catch (IOException | RuntimeException e) {
+                    e = s;
+                } catch (RuntimeException | IOException var25) {
                     try {
                         s.close();
+                    } catch (IOException var24) {
                     }
-                    catch (IOException iOException) {
-                        // empty catch block
-                    }
-                    throw e;
+
+                    throw var25;
                 }
-                return socket;
-            }
-            finally {
+            } finally {
                 Authenticator.setDefault(old);
             }
+
+            return e;
         }
     }
 
     public static String normalizeSocksCredential(String s) {
         if (s == null) {
             return "";
+        } else {
+            String t = s.strip();
+            if (t.startsWith("\ufeff")) {
+                t = t.substring(1).strip();
+            }
+
+            while (!t.isEmpty() && (t.endsWith("\r") || t.endsWith("\n"))) {
+                t = t.substring(0, t.length() - 1);
+            }
+
+            return t;
         }
-        String t = s.strip();
-        if (t.startsWith("\ufeff")) {
-            t = t.substring(1).strip();
-        }
-        while (!t.isEmpty() && (t.endsWith("\r") || t.endsWith("\n"))) {
-            t = t.substring(0, t.length() - 1);
-        }
-        return t;
     }
 }
-

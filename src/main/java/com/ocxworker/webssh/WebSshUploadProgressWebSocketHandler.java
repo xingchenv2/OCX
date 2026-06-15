@@ -1,19 +1,5 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.webssh.WebSshUploadProgressWebSocketHandler
- *  com.ocxworker.webssh.WebSshUploadRegistry
- *  org.springframework.stereotype.Component
- *  org.springframework.web.socket.CloseStatus
- *  org.springframework.web.socket.TextMessage
- *  org.springframework.web.socket.WebSocketHandler
- *  org.springframework.web.socket.WebSocketMessage
- *  org.springframework.web.socket.WebSocketSession
- */
 package com.ocxworker.webssh;
 
-import com.ocxworker.webssh.WebSshUploadRegistry;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -21,12 +7,8 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @Component
-public class WebSshUploadProgressWebSocketHandler
-implements WebSocketHandler {
+public class WebSshUploadProgressWebSocketHandler implements WebSocketHandler {
     private final WebSshUploadRegistry uploadRegistry;
 
     public WebSshUploadProgressWebSocketHandler(WebSshUploadRegistry uploadRegistry) {
@@ -34,22 +16,28 @@ implements WebSocketHandler {
     }
 
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String id = WebSshUploadProgressWebSocketHandler.parseQuery((WebSocketSession)session, (String)"id");
-        if (id == null || id.isBlank()) {
-            session.close();
-            return;
-        }
-        boolean ready = false;
-        while (session.isOpen()) {
-            Integer total = this.uploadRegistry.peek(id);
-            if (total != null) {
-                session.sendMessage((WebSocketMessage)new TextMessage((CharSequence)String.valueOf(total)));
-                ready = true;
+        String id = parseQuery(session, "id");
+        if (id != null && !id.isBlank()) {
+            boolean ready = false;
+
+            while (session.isOpen()) {
+                Integer total = this.uploadRegistry.peek(id);
+                if (total != null) {
+                    session.sendMessage(new TextMessage(String.valueOf(total)));
+                    ready = true;
+                }
+
+                if (ready && this.uploadRegistry.peek(id) == null) {
+                    break;
+                }
+
+                Thread.sleep(300L);
             }
-            if (ready && this.uploadRegistry.peek(id) == null) break;
-            Thread.sleep(300L);
-        }
-        if (session.isOpen()) {
+
+            if (session.isOpen()) {
+                session.close();
+            }
+        } else {
             session.close();
         }
     }
@@ -68,15 +56,17 @@ implements WebSocketHandler {
     }
 
     private static String parseQuery(WebSocketSession ws, String key) {
-        if (ws.getUri() == null || ws.getUri().getQuery() == null) {
+        if (ws.getUri() != null && ws.getUri().getQuery() != null) {
+            for (String part : ws.getUri().getQuery().split("&")) {
+                int i = part.indexOf(61);
+                if (i > 0 && key.equals(part.substring(0, i))) {
+                    return part.substring(i + 1);
+                }
+            }
+
+            return null;
+        } else {
             return null;
         }
-        for (String part : ws.getUri().getQuery().split("&")) {
-            int i = part.indexOf(61);
-            if (i <= 0 || !key.equals(part.substring(0, i))) continue;
-            return part.substring(i + 1);
-        }
-        return null;
     }
 }
-

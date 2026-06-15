@@ -1,9 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.util.SecretCompare
- */
 package com.ocxworker.util;
 
 import java.nio.charset.StandardCharsets;
@@ -14,18 +8,16 @@ public final class SecretCompare {
     }
 
     public static boolean equalsUtf8(String a, String b) {
-        byte[] bb;
-        byte[] ba;
         if (a == null) {
             a = "";
         }
+
         if (b == null) {
             b = "";
         }
-        if ((ba = a.getBytes(StandardCharsets.UTF_8)).length != (bb = b.getBytes(StandardCharsets.UTF_8)).length) {
-            return false;
-        }
-        return MessageDigest.isEqual(ba, bb);
+
+        byte[] ba = a.getBytes(StandardCharsets.UTF_8);
+        byte[] bb = b.getBytes(StandardCharsets.UTF_8);
+        return ba.length != bb.length ? false : MessageDigest.isEqual(ba, bb);
     }
 }
-

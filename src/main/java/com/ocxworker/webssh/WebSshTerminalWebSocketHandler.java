@@ -1,33 +1,7 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.jcraft.jsch.Channel
- *  com.jcraft.jsch.ChannelShell
- *  com.jcraft.jsch.Session
- *  com.ocxworker.webssh.WebSshConnectInfo
- *  com.ocxworker.webssh.WebSshConnectInfoParser
- *  com.ocxworker.webssh.WebSshJschSupport
- *  com.ocxworker.webssh.WebSshTerminalWebSocketHandler
- *  lombok.Generated
- *  org.slf4j.Logger
- *  org.slf4j.LoggerFactory
- *  org.springframework.beans.factory.annotation.Value
- *  org.springframework.stereotype.Component
- *  org.springframework.web.socket.CloseStatus
- *  org.springframework.web.socket.TextMessage
- *  org.springframework.web.socket.WebSocketHandler
- *  org.springframework.web.socket.WebSocketMessage
- *  org.springframework.web.socket.WebSocketSession
- */
 package com.ocxworker.webssh;
 
-import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.Session;
-import com.ocxworker.webssh.WebSshConnectInfo;
-import com.ocxworker.webssh.WebSshConnectInfoParser;
-import com.ocxworker.webssh.WebSshJschSupport;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -46,75 +20,72 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-/*
- * Exception performing whole class analysis ignored.
- */
 @Component
-public class WebSshTerminalWebSocketHandler
-implements WebSocketHandler {
+public class WebSshTerminalWebSocketHandler implements WebSocketHandler {
     @Generated
     private static final Logger log = LoggerFactory.getLogger(WebSshTerminalWebSocketHandler.class);
     private final ExecutorService ioPool = Executors.newVirtualThreadPerTaskExecutor();
-    @Value(value="${webssh.timeout-minutes:120}")
+    @Value("${webssh.timeout-minutes:120}")
     private int timeoutMinutes;
 
     public void afterConnectionEstablished(WebSocketSession session) {
     }
 
     public void handleMessage(WebSocketSession ws, WebSocketMessage<?> message) throws Exception {
-        if (!(message instanceof TextMessage)) {
-            return;
+        if (message instanceof TextMessage textMessage) {
+            String payload = (String)textMessage.getPayload();
+            if (ws.getAttributes().containsKey("started")) {
+                this.handleTerminalInput(ws, payload);
+            } else {
+                this.startTerminal(ws, payload);
+            }
         }
-        TextMessage textMessage = (TextMessage)message;
-        String payload = (String)textMessage.getPayload();
-        if (ws.getAttributes().containsKey("started")) {
-            this.handleTerminalInput(ws, payload);
-            return;
-        }
-        this.startTerminal(ws, payload);
     }
 
     private void startTerminal(WebSocketSession ws, String sshInfoB64) {
-        int cols = WebSshTerminalWebSocketHandler.parseQueryInt((WebSocketSession)ws, (String)"cols", (int)150);
-        int rows = WebSshTerminalWebSocketHandler.parseQueryInt((WebSocketSession)ws, (String)"rows", (int)35);
-        String closeTip = WebSshTerminalWebSocketHandler.parseQuery((WebSocketSession)ws, (String)"closeTip", (String)"Connection timed out!");
+        int cols = parseQueryInt(ws, "cols", 150);
+        int rows = parseQueryInt(ws, "rows", 35);
+        String closeTip = parseQuery(ws, "closeTip", "Connection timed out!");
         ws.getAttributes().put("started", Boolean.TRUE);
         Future<?> readerFuture = this.ioPool.submit(() -> {
             Session session = null;
             ChannelShell shell = null;
+
             try {
-                WebSshConnectInfo info = WebSshConnectInfoParser.parse((String)sshInfoB64);
-                session = WebSshJschSupport.openSession((WebSshConnectInfo)info);
-                shell = WebSshJschSupport.openShell((Session)session, (int)cols, (int)rows);
+                WebSshConnectInfo info = WebSshConnectInfoParser.parse(sshInfoB64);
+                session = WebSshJschSupport.openSession(info);
+                shell = WebSshJschSupport.openShell(session, cols, rows);
                 ws.getAttributes().put("shell", shell);
                 ws.getAttributes().put("sshSession", session);
-                ws.getAttributes().put("stdin", WebSshJschSupport.shellInput((ChannelShell)shell));
-                InputStream stdout = WebSshJschSupport.shellOutput((ChannelShell)shell);
+                ws.getAttributes().put("stdin", WebSshJschSupport.shellInput(shell));
+                InputStream stdout = WebSshJschSupport.shellOutput(shell);
                 byte[] buf = new byte[4096];
-                long deadline = System.nanoTime() + Duration.ofMinutes(this.timeoutMinutes).toNanos();
+                long deadline = System.nanoTime() + Duration.ofMinutes((long)this.timeoutMinutes).toNanos();
+
                 while (ws.isOpen() && shell.isConnected()) {
                     if (System.nanoTime() > deadline) {
-                        WebSshTerminalWebSocketHandler.sendText((WebSocketSession)ws, (String)("\u001b[33m" + closeTip + "\u001b[0m"));
+                        sendText(ws, "\u001b[33m" + closeTip + "\u001b[0m");
                         break;
                     }
+
                     while (stdout.available() > 0) {
                         int n = stdout.read(buf);
-                        if (n <= 0) continue;
-                        WebSshTerminalWebSocketHandler.sendText((WebSocketSession)ws, (String)new String(buf, 0, n, StandardCharsets.UTF_8));
+                        if (n > 0) {
+                            sendText(ws, new String(buf, 0, n, StandardCharsets.UTF_8));
+                        }
                     }
+
                     Thread.sleep(50L);
                 }
-            }
-            catch (Exception e) {
-                log.debug("SSH terminal error: {}", (Object)e.getMessage());
+            } catch (Exception var19) {
+                Exception e = var19;
+                log.debug("SSH terminal error: {}", var19.getMessage());
+
                 try {
-                    WebSshTerminalWebSocketHandler.sendText((WebSocketSession)ws, (String)("\u001b[31m" + e.getMessage() + "\u001b[0m"));
+                    sendText(ws, "\u001b[31m" + e.getMessage() + "\u001b[0m");
+                } catch (Exception var18) {
                 }
-                catch (Exception exception) {
-                    // empty catch block
-                }
-            }
-            finally {
+            } finally {
                 this.closeSsh(ws);
             }
         });
@@ -122,88 +93,79 @@ implements WebSocketHandler {
     }
 
     private void handleTerminalInput(WebSocketSession ws, String payload) throws Exception {
-        if ("ping".equals(payload)) {
-            return;
-        }
-        if (payload.startsWith("resize:")) {
-            String[] parts = payload.split(":");
-            if (parts.length >= 3) {
-                int rows = Integer.parseInt(parts[1]);
-                int cols = Integer.parseInt(parts[2]);
-                Object shellObj = ws.getAttributes().get("shell");
-                if (shellObj instanceof ChannelShell) {
-                    ChannelShell shell = (ChannelShell)shellObj;
-                    WebSshJschSupport.resizeShell((Channel)shell, (int)cols, (int)rows);
+        if (!"ping".equals(payload)) {
+            if (payload.startsWith("resize:")) {
+                String[] parts = payload.split(":");
+                if (parts.length >= 3) {
+                    int rows = Integer.parseInt(parts[1]);
+                    int cols = Integer.parseInt(parts[2]);
+                    if (ws.getAttributes().get("shell") instanceof ChannelShell shell) {
+                        WebSshJschSupport.resizeShell(shell, cols, rows);
+                    }
+                }
+            } else {
+                if (ws.getAttributes().get("stdin") instanceof OutputStream stdin) {
+                    stdin.write(payload.getBytes(StandardCharsets.UTF_8));
+                    stdin.flush();
                 }
             }
-            return;
-        }
-        Object stdinObj = ws.getAttributes().get("stdin");
-        if (stdinObj instanceof OutputStream) {
-            OutputStream stdin = (OutputStream)stdinObj;
-            stdin.write(payload.getBytes(StandardCharsets.UTF_8));
-            stdin.flush();
         }
     }
 
     private static int parseQueryInt(WebSocketSession ws, String key, int def) {
-        String v = WebSshTerminalWebSocketHandler.parseQuery((WebSocketSession)ws, (String)key, null);
+        String v = parseQuery(ws, key, null);
         if (v == null) {
             return def;
-        }
-        try {
-            return Integer.parseInt(v);
-        }
-        catch (NumberFormatException e) {
-            return def;
+        } else {
+            try {
+                return Integer.parseInt(v);
+            } catch (NumberFormatException var5) {
+                return def;
+            }
         }
     }
 
     private static String parseQuery(WebSocketSession ws, String key, String def) {
-        if (ws.getUri() == null || ws.getUri().getQuery() == null) {
+        if (ws.getUri() != null && ws.getUri().getQuery() != null) {
+            for (String part : ws.getUri().getQuery().split("&")) {
+                int i = part.indexOf(61);
+                if (i > 0 && key.equals(part.substring(0, i))) {
+                    return part.substring(i + 1);
+                }
+            }
+
+            return def;
+        } else {
             return def;
         }
-        for (String part : ws.getUri().getQuery().split("&")) {
-            int i = part.indexOf(61);
-            if (i <= 0 || !key.equals(part.substring(0, i))) continue;
-            return part.substring(i + 1);
-        }
-        return def;
     }
 
     private void closeSsh(WebSocketSession ws) {
-        Session s;
-        ChannelShell s2;
         Object shellObj = ws.getAttributes().remove("shell");
         Object sessionObj = ws.getAttributes().remove("sshSession");
         ws.getAttributes().remove("stdin");
-        ChannelShell shell = shellObj instanceof ChannelShell ? (s2 = (ChannelShell)shellObj) : null;
-        Session session = sessionObj instanceof Session ? (s = (Session)sessionObj) : null;
-        WebSshJschSupport.closeQuietly((Session)session, (Channel[])new Channel[]{shell});
+        ChannelShell shell = shellObj instanceof ChannelShell s ? s : null;
+        Session session = sessionObj instanceof Session sx ? sx : null;
+        WebSshJschSupport.closeQuietly(session, shell);
     }
 
-    /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     */
     private static void sendText(WebSocketSession ws, String text) throws Exception {
         if (ws.isOpen()) {
-            WebSocketSession webSocketSession = ws;
-            synchronized (webSocketSession) {
-                ws.sendMessage((WebSocketMessage)new TextMessage((CharSequence)text));
+            synchronized (ws) {
+                ws.sendMessage(new TextMessage(text));
             }
         }
     }
 
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        log.debug("SSH ws transport error: {}", (Object)exception.getMessage());
+        log.debug("SSH ws transport error: {}", exception.getMessage());
     }
 
     public void afterConnectionClosed(WebSocketSession ws, CloseStatus status) {
-        Object f = ws.getAttributes().remove("reader");
-        if (f instanceof Future) {
-            Future future = (Future)f;
+        if (ws.getAttributes().remove("reader") instanceof Future<?> future) {
             future.cancel(true);
         }
+
         this.closeSsh(ws);
     }
 
@@ -211,4 +173,3 @@ implements WebSocketHandler {
         return false;
     }
 }
-

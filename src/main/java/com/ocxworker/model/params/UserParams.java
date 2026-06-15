@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.ocxworker.model.params.UserParams
- *  lombok.Generated
- */
 package com.ocxworker.model.params;
 
 import java.util.List;
@@ -25,10 +18,6 @@ public class UserParams {
     private Integer bypassCodeExpiryDays;
     private Map<String, Boolean> capabilities;
     private List<String> groupIds;
-
-    @Generated
-    public UserParams() {
-    }
 
     @Generated
     public String getTenantId() {
@@ -96,188 +85,227 @@ public class UserParams {
     }
 
     @Generated
-    public void setTenantId(String tenantId) {
+    public void setTenantId(final String tenantId) {
         this.tenantId = tenantId;
     }
 
     @Generated
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
     @Generated
-    public void setUserName(String userName) {
+    public void setUserName(final String userName) {
         this.userName = userName;
     }
 
     @Generated
-    public void setEmail(String email) {
+    public void setEmail(final String email) {
         this.email = email;
     }
 
     @Generated
-    public void setFirstName(String firstName) {
+    public void setFirstName(final String firstName) {
         this.firstName = firstName;
     }
 
     @Generated
-    public void setLastName(String lastName) {
+    public void setLastName(final String lastName) {
         this.lastName = lastName;
     }
 
     @Generated
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
     @Generated
-    public void setAddToAdminGroup(Boolean addToAdminGroup) {
+    public void setAddToAdminGroup(final Boolean addToAdminGroup) {
         this.addToAdminGroup = addToAdminGroup;
     }
 
     @Generated
-    public void setDomainId(String domainId) {
+    public void setDomainId(final String domainId) {
         this.domainId = domainId;
     }
 
     @Generated
-    public void setBypassCodeCount(Integer bypassCodeCount) {
+    public void setBypassCodeCount(final Integer bypassCodeCount) {
         this.bypassCodeCount = bypassCodeCount;
     }
 
     @Generated
-    public void setBypassCodeExpiryDays(Integer bypassCodeExpiryDays) {
+    public void setBypassCodeExpiryDays(final Integer bypassCodeExpiryDays) {
         this.bypassCodeExpiryDays = bypassCodeExpiryDays;
     }
 
     @Generated
-    public void setCapabilities(Map<String, Boolean> capabilities) {
+    public void setCapabilities(final Map<String, Boolean> capabilities) {
         this.capabilities = capabilities;
     }
 
     @Generated
-    public void setGroupIds(List<String> groupIds) {
+    public void setGroupIds(final List<String> groupIds) {
         this.groupIds = groupIds;
     }
 
     @Generated
-    public boolean equals(Object o) {
+    @Override
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
-        }
-        if (!(o instanceof UserParams)) {
+        } else if (!(o instanceof UserParams other)) {
             return false;
-        }
-        UserParams other = (UserParams)o;
-        if (!other.canEqual((Object)this)) {
+        } else if (!other.canEqual(this)) {
             return false;
+        } else {
+            Object this$addToAdminGroup = this.getAddToAdminGroup();
+            Object other$addToAdminGroup = other.getAddToAdminGroup();
+            if (this$addToAdminGroup == null ? other$addToAdminGroup == null : this$addToAdminGroup.equals(other$addToAdminGroup)) {
+                Object this$bypassCodeCount = this.getBypassCodeCount();
+                Object other$bypassCodeCount = other.getBypassCodeCount();
+                if (this$bypassCodeCount == null ? other$bypassCodeCount == null : this$bypassCodeCount.equals(other$bypassCodeCount)) {
+                    Object this$bypassCodeExpiryDays = this.getBypassCodeExpiryDays();
+                    Object other$bypassCodeExpiryDays = other.getBypassCodeExpiryDays();
+                    if (this$bypassCodeExpiryDays == null ? other$bypassCodeExpiryDays == null : this$bypassCodeExpiryDays.equals(other$bypassCodeExpiryDays)) {
+                        Object this$tenantId = this.getTenantId();
+                        Object other$tenantId = other.getTenantId();
+                        if (this$tenantId == null ? other$tenantId == null : this$tenantId.equals(other$tenantId)) {
+                            Object this$userId = this.getUserId();
+                            Object other$userId = other.getUserId();
+                            if (this$userId == null ? other$userId == null : this$userId.equals(other$userId)) {
+                                Object this$userName = this.getUserName();
+                                Object other$userName = other.getUserName();
+                                if (this$userName == null ? other$userName == null : this$userName.equals(other$userName)) {
+                                    Object this$email = this.getEmail();
+                                    Object other$email = other.getEmail();
+                                    if (this$email == null ? other$email == null : this$email.equals(other$email)) {
+                                        Object this$firstName = this.getFirstName();
+                                        Object other$firstName = other.getFirstName();
+                                        if (this$firstName == null ? other$firstName == null : this$firstName.equals(other$firstName)) {
+                                            Object this$lastName = this.getLastName();
+                                            Object other$lastName = other.getLastName();
+                                            if (this$lastName == null ? other$lastName == null : this$lastName.equals(other$lastName)) {
+                                                Object this$password = this.getPassword();
+                                                Object other$password = other.getPassword();
+                                                if (this$password == null ? other$password == null : this$password.equals(other$password)) {
+                                                    Object this$domainId = this.getDomainId();
+                                                    Object other$domainId = other.getDomainId();
+                                                    if (this$domainId == null ? other$domainId == null : this$domainId.equals(other$domainId)) {
+                                                        Object this$capabilities = this.getCapabilities();
+                                                        Object other$capabilities = other.getCapabilities();
+                                                        if (this$capabilities == null
+                                                            ? other$capabilities == null
+                                                            : this$capabilities.equals(other$capabilities)) {
+                                                            Object this$groupIds = this.getGroupIds();
+                                                            Object other$groupIds = other.getGroupIds();
+                                                            return this$groupIds == null ? other$groupIds == null : this$groupIds.equals(other$groupIds);
+                                                        } else {
+                                                            return false;
+                                                        }
+                                                    } else {
+                                                        return false;
+                                                    }
+                                                } else {
+                                                    return false;
+                                                }
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
-        Boolean this$addToAdminGroup = this.getAddToAdminGroup();
-        Boolean other$addToAdminGroup = other.getAddToAdminGroup();
-        if (this$addToAdminGroup == null ? other$addToAdminGroup != null : !((Object)this$addToAdminGroup).equals(other$addToAdminGroup)) {
-            return false;
-        }
-        Integer this$bypassCodeCount = this.getBypassCodeCount();
-        Integer other$bypassCodeCount = other.getBypassCodeCount();
-        if (this$bypassCodeCount == null ? other$bypassCodeCount != null : !((Object)this$bypassCodeCount).equals(other$bypassCodeCount)) {
-            return false;
-        }
-        Integer this$bypassCodeExpiryDays = this.getBypassCodeExpiryDays();
-        Integer other$bypassCodeExpiryDays = other.getBypassCodeExpiryDays();
-        if (this$bypassCodeExpiryDays == null ? other$bypassCodeExpiryDays != null : !((Object)this$bypassCodeExpiryDays).equals(other$bypassCodeExpiryDays)) {
-            return false;
-        }
-        String this$tenantId = this.getTenantId();
-        String other$tenantId = other.getTenantId();
-        if (this$tenantId == null ? other$tenantId != null : !this$tenantId.equals(other$tenantId)) {
-            return false;
-        }
-        String this$userId = this.getUserId();
-        String other$userId = other.getUserId();
-        if (this$userId == null ? other$userId != null : !this$userId.equals(other$userId)) {
-            return false;
-        }
-        String this$userName = this.getUserName();
-        String other$userName = other.getUserName();
-        if (this$userName == null ? other$userName != null : !this$userName.equals(other$userName)) {
-            return false;
-        }
-        String this$email = this.getEmail();
-        String other$email = other.getEmail();
-        if (this$email == null ? other$email != null : !this$email.equals(other$email)) {
-            return false;
-        }
-        String this$firstName = this.getFirstName();
-        String other$firstName = other.getFirstName();
-        if (this$firstName == null ? other$firstName != null : !this$firstName.equals(other$firstName)) {
-            return false;
-        }
-        String this$lastName = this.getLastName();
-        String other$lastName = other.getLastName();
-        if (this$lastName == null ? other$lastName != null : !this$lastName.equals(other$lastName)) {
-            return false;
-        }
-        String this$password = this.getPassword();
-        String other$password = other.getPassword();
-        if (this$password == null ? other$password != null : !this$password.equals(other$password)) {
-            return false;
-        }
-        String this$domainId = this.getDomainId();
-        String other$domainId = other.getDomainId();
-        if (this$domainId == null ? other$domainId != null : !this$domainId.equals(other$domainId)) {
-            return false;
-        }
-        Map this$capabilities = this.getCapabilities();
-        Map other$capabilities = other.getCapabilities();
-        if (this$capabilities == null ? other$capabilities != null : !((Object)this$capabilities).equals(other$capabilities)) {
-            return false;
-        }
-        List this$groupIds = this.getGroupIds();
-        List other$groupIds = other.getGroupIds();
-        return !(this$groupIds == null ? other$groupIds != null : !((Object)this$groupIds).equals(other$groupIds));
     }
 
     @Generated
-    protected boolean canEqual(Object other) {
+    protected boolean canEqual(final Object other) {
         return other instanceof UserParams;
     }
 
     @Generated
+    @Override
     public int hashCode() {
         int PRIME = 59;
         int result = 1;
-        Boolean $addToAdminGroup = this.getAddToAdminGroup();
-        result = result * 59 + ($addToAdminGroup == null ? 43 : ((Object)$addToAdminGroup).hashCode());
-        Integer $bypassCodeCount = this.getBypassCodeCount();
-        result = result * 59 + ($bypassCodeCount == null ? 43 : ((Object)$bypassCodeCount).hashCode());
-        Integer $bypassCodeExpiryDays = this.getBypassCodeExpiryDays();
-        result = result * 59 + ($bypassCodeExpiryDays == null ? 43 : ((Object)$bypassCodeExpiryDays).hashCode());
-        String $tenantId = this.getTenantId();
+        Object $addToAdminGroup = this.getAddToAdminGroup();
+        result = result * 59 + ($addToAdminGroup == null ? 43 : $addToAdminGroup.hashCode());
+        Object $bypassCodeCount = this.getBypassCodeCount();
+        result = result * 59 + ($bypassCodeCount == null ? 43 : $bypassCodeCount.hashCode());
+        Object $bypassCodeExpiryDays = this.getBypassCodeExpiryDays();
+        result = result * 59 + ($bypassCodeExpiryDays == null ? 43 : $bypassCodeExpiryDays.hashCode());
+        Object $tenantId = this.getTenantId();
         result = result * 59 + ($tenantId == null ? 43 : $tenantId.hashCode());
-        String $userId = this.getUserId();
+        Object $userId = this.getUserId();
         result = result * 59 + ($userId == null ? 43 : $userId.hashCode());
-        String $userName = this.getUserName();
+        Object $userName = this.getUserName();
         result = result * 59 + ($userName == null ? 43 : $userName.hashCode());
-        String $email = this.getEmail();
+        Object $email = this.getEmail();
         result = result * 59 + ($email == null ? 43 : $email.hashCode());
-        String $firstName = this.getFirstName();
+        Object $firstName = this.getFirstName();
         result = result * 59 + ($firstName == null ? 43 : $firstName.hashCode());
-        String $lastName = this.getLastName();
+        Object $lastName = this.getLastName();
         result = result * 59 + ($lastName == null ? 43 : $lastName.hashCode());
-        String $password = this.getPassword();
+        Object $password = this.getPassword();
         result = result * 59 + ($password == null ? 43 : $password.hashCode());
-        String $domainId = this.getDomainId();
+        Object $domainId = this.getDomainId();
         result = result * 59 + ($domainId == null ? 43 : $domainId.hashCode());
-        Map $capabilities = this.getCapabilities();
-        result = result * 59 + ($capabilities == null ? 43 : ((Object)$capabilities).hashCode());
-        List $groupIds = this.getGroupIds();
-        result = result * 59 + ($groupIds == null ? 43 : ((Object)$groupIds).hashCode());
-        return result;
+        Object $capabilities = this.getCapabilities();
+        result = result * 59 + ($capabilities == null ? 43 : $capabilities.hashCode());
+        Object $groupIds = this.getGroupIds();
+        return result * 59 + ($groupIds == null ? 43 : $groupIds.hashCode());
     }
 
     @Generated
+    @Override
     public String toString() {
-        return "UserParams(tenantId=" + this.getTenantId() + ", userId=" + this.getUserId() + ", userName=" + this.getUserName() + ", email=" + this.getEmail() + ", firstName=" + this.getFirstName() + ", lastName=" + this.getLastName() + ", password=" + this.getPassword() + ", addToAdminGroup=" + this.getAddToAdminGroup() + ", domainId=" + this.getDomainId() + ", bypassCodeCount=" + this.getBypassCodeCount() + ", bypassCodeExpiryDays=" + this.getBypassCodeExpiryDays() + ", capabilities=" + String.valueOf(this.getCapabilities()) + ", groupIds=" + String.valueOf(this.getGroupIds()) + ")";
+        return "UserParams(tenantId="
+            + this.getTenantId()
+            + ", userId="
+            + this.getUserId()
+            + ", userName="
+            + this.getUserName()
+            + ", email="
+            + this.getEmail()
+            + ", firstName="
+            + this.getFirstName()
+            + ", lastName="
+            + this.getLastName()
+            + ", password="
+            + this.getPassword()
+            + ", addToAdminGroup="
+            + this.getAddToAdminGroup()
+            + ", domainId="
+            + this.getDomainId()
+            + ", bypassCodeCount="
+            + this.getBypassCodeCount()
+            + ", bypassCodeExpiryDays="
+            + this.getBypassCodeExpiryDays()
+            + ", capabilities="
+            + this.getCapabilities()
+            + ", groupIds="
+            + this.getGroupIds()
+            + ")";
     }
 }
-
