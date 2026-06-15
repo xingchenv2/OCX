@@ -31,7 +31,7 @@ public class WebSshLegacyCleanupRunner
 implements ApplicationRunner {
     @Generated
     private static final Logger log = LoggerFactory.getLogger(WebSshLegacyCleanupRunner.class);
-    private static final Path LEGACY_BIN = Path.of("/opt/oci-worker/oci-webssh", new String[0]);
+    private static final Path LEGACY_BIN = Path.of("/opt/ocx-worker/oci-webssh", new String[0]);
     private static final String LEGACY_UNIT = "oci-webssh.service";
 
     public void run(ApplicationArguments args) {

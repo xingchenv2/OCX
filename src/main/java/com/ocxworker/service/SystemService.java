@@ -91,8 +91,8 @@ public class SystemService {
     private StorageService storageService;
     private static final String REPO = "xingchenv2/OCX";
     private static final String PUBLIC_RELEASE_REPO = "xingchenv2/OCX";
-    private static final String JAR_PATH = "/opt/oci-worker/oci-worker.jar";
-    private static final String ASSET_NAME = "oci-worker-1.0.0.jar";
+    private static final String JAR_PATH = "/opt/ocx-worker/ocx-worker.jar";
+    private static final String ASSET_NAME = "ocx-worker-0.1.1.jar";
     private static final ObjectMapper JSON = new ObjectMapper();
     private String currentCommit;
 
@@ -224,11 +224,11 @@ public class SystemService {
     public void performUpdate() {
         File jarFile = new File(JAR_PATH);
         if (!jarFile.exists()) {
-            throw new OciException("\u672a\u627e\u5230 /opt/oci-worker/oci-worker.jar\uff0c\u8bf7\u5148\u901a\u8fc7 deploy.sh \u90e8\u7f72");
+            throw new OciException("\u672a\u627e\u5230 /opt/ocx-worker/ocx-worker.jar\uff0c\u8bf7\u5148\u901a\u8fc7 deploy.sh \u90e8\u7f72");
         }
         try {
-            String script = "#!/bin/bash\nset -e\nREPO=\"%s\"\nASSET=\"%s\"\nJAR=\"%s\"\n# \u76f4\u8fde latest \u8d44\u6e90\uff0c\u907f\u514d\u5148\u8c03 api.github.com + grep\uff08\u7701\u4e00\u6b21 RTT\uff0c\u4e5f\u964d\u4f4e\u9650\u6d41\u6982\u7387\uff09\nJAR_URL=\"https://github.com/${REPO}/releases/download/latest/${ASSET}\"\ncurl -fSL --retry 2 --retry-delay 2 --connect-timeout 15 --max-time 600 -o \"${JAR}.tmp\" \"$JAR_URL\"\nNEW_SIZE=$(stat -c%%s \"${JAR}.tmp\" 2>/dev/null || echo 0)\nif [ \"$NEW_SIZE\" -lt 1000 ]; then\n  rm -f \"${JAR}.tmp\"\n  echo \"Download failed: file too small (${NEW_SIZE} bytes)\"\n  exit 1\nfi\nmv \"${JAR}.tmp\" \"$JAR\"\nsystemctl stop oci-webssh 2>/dev/null || true\nsystemctl disable oci-webssh 2>/dev/null || true\nrm -f /opt/oci-worker/oci-webssh\nrm -f /etc/systemd/system/oci-webssh.service\nsystemctl daemon-reload 2>/dev/null || true\nsystemctl restart oci-worker\n".formatted("xingchenv2/OCX", ASSET_NAME, JAR_PATH);
-            Path scriptFile = Path.of("/tmp/oci-worker-update.sh", new String[0]);
+            String script = "#!/bin/bash\nset -e\nREPO=\"%s\"\nASSET=\"%s\"\nJAR=\"%s\"\n# \u76f4\u8fde latest \u8d44\u6e90\uff0c\u907f\u514d\u5148\u8c03 api.github.com + grep\uff08\u7701\u4e00\u6b21 RTT\uff0c\u4e5f\u964d\u4f4e\u9650\u6d41\u6982\u7387\uff09\nJAR_URL=\"https://github.com/${REPO}/releases/download/latest/${ASSET}\"\ncurl -fSL --retry 2 --retry-delay 2 --connect-timeout 15 --max-time 600 -o \"${JAR}.tmp\" \"$JAR_URL\"\nNEW_SIZE=$(stat -c%%s \"${JAR}.tmp\" 2>/dev/null || echo 0)\nif [ \"$NEW_SIZE\" -lt 1000 ]; then\n  rm -f \"${JAR}.tmp\"\n  echo \"Download failed: file too small (${NEW_SIZE} bytes)\"\n  exit 1\nfi\nmv \"${JAR}.tmp\" \"$JAR\"\nsystemctl stop oci-webssh 2>/dev/null || true\nsystemctl disable oci-webssh 2>/dev/null || true\nrm -f /opt/ocx-worker/oci-webssh\nrm -f /etc/systemd/system/oci-webssh.service\nsystemctl daemon-reload 2>/dev/null || true\nsystemctl restart ocx-worker\n".formatted("xingchenv2/OCX", ASSET_NAME, JAR_PATH);
+            Path scriptFile = Path.of("/tmp/ocx-worker-update.sh", new String[0]);
             Files.writeString(scriptFile, (CharSequence)script, new OpenOption[0]);
             try {
                 Files.setPosixFilePermissions(scriptFile, PosixFilePermissions.fromString("rwxr-xr-x"));
@@ -236,7 +236,7 @@ public class SystemService {
             catch (UnsupportedOperationException unsupportedOperationException) {
                 // empty catch block
             }
-            new ProcessBuilder("bash", "-c", "nohup bash /tmp/oci-worker-update.sh > /tmp/oci-worker-update.log 2>&1 &").redirectErrorStream(true).start();
+            new ProcessBuilder("bash", "-c", "nohup bash /tmp/ocx-worker-update.sh > /tmp/ocx-worker-update.log 2>&1 &").redirectErrorStream(true).start();
             log.info("Update process started in background");
         }
         catch (IOException e) {

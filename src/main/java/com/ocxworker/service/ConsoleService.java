@@ -124,7 +124,7 @@ public class ConsoleService {
         String output;
         Files.deleteIfExists(privPath);
         Files.deleteIfExists(pubPath);
-        ProcessBuilder pb = new ProcessBuilder("ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privPath.toAbsolutePath().toString(), "-N", "", "-C", "oci-worker-console").redirectErrorStream(true);
+        ProcessBuilder pb = new ProcessBuilder("ssh-keygen", "-t", "rsa", "-b", "2048", "-f", privPath.toAbsolutePath().toString(), "-N", "", "-C", "ocx-worker-console").redirectErrorStream(true);
         Process p = pb.start();
         try (InputStream in = p.getInputStream();){
             output = new String(in.readAllBytes());

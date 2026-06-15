@@ -1,0 +1,1617 @@
+﻿/* Multi-tab SSH terminal – SFTP, bookmarks */
+
+// ==================== State ====================
+var sessions = [];
+var activeIdx = -1;
+var sftpCurrentPath = '/';
+var consoleInstanceContext = null;
+/** OCI serial / UEFI: fixed 80x24 avoids \\r prompt overlapping output (Cloud Shell uses similar). */
+var CONSOLE_COLS = 80;
+var CONSOLE_ROWS = 24;
+
+// ==================== Particles ====================
+(function () {
+    var c = document.getElementById('particles');
+    if (!c) return;
+    var x = c.getContext('2d'), ps = [], m = { x: null, y: null };
+    function rs() { c.width = innerWidth; c.height = innerHeight; }
+    rs(); addEventListener('resize', rs);
+    document.addEventListener('mousemove', function (e) { m.x = e.clientX; m.y = e.clientY; });
+    function P() { this.r(); }
+    P.prototype.r = function () { this.x = Math.random() * c.width; this.y = Math.random() * c.height; this.s = Math.random() * 2 + .5; this.sx = (Math.random() - .5) * .5; this.sy = (Math.random() - .5) * .5; this.o = Math.random() * .5 + .1; this.h = Math.random() * 60 + 180; };
+    P.prototype.u = function () { this.x += this.sx; this.y += this.sy; if (m.x !== null) { var dx = m.x - this.x, dy = m.y - this.y, d = Math.sqrt(dx * dx + dy * dy); if (d < 150) { var f = (150 - d) / 150; this.x -= dx * f * .01; this.y -= dy * f * .01; } } if (this.x < 0 || this.x > c.width) this.sx *= -1; if (this.y < 0 || this.y > c.height) this.sy *= -1; };
+    P.prototype.d = function () { x.beginPath(); x.arc(this.x, this.y, this.s, 0, Math.PI * 2); x.fillStyle = 'hsla(' + this.h + ',80%,60%,' + this.o + ')'; x.fill(); };
+    var n = Math.min(50, Math.floor(innerWidth * innerHeight / 22000));
+    for (var i = 0; i < n; i++) ps.push(new P());
+    (function a() {
+        x.clearRect(0, 0, c.width, c.height);
+        for (var i = 0; i < ps.length; i++) { ps[i].u(); ps[i].d(); }
+        for (var i = 0; i < ps.length; i++) for (var j = i + 1; j < ps.length; j++) { var dx = ps[i].x - ps[j].x, dy = ps[i].y - ps[j].y, d = Math.sqrt(dx * dx + dy * dy); if (d < 120) { x.beginPath(); x.moveTo(ps[i].x, ps[i].y); x.lineTo(ps[j].x, ps[j].y); x.strokeStyle = 'rgba(0,212,255,' + ((1 - d / 120) * .15) + ')'; x.lineWidth = .5; x.stroke(); } }
+        requestAnimationFrame(a);
+    })();
+})();
+
+// ==================== Utility ====================
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtB(b) { b = parseInt(b) || 0; if (!b) return '0B'; var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = Math.floor(Math.log(b) / Math.log(1024)); return (b / Math.pow(1024, i)).toFixed(i > 1 ? 1 : 0) + u[i]; }
+function pct(u, t) { return Math.round((parseInt(u) || 0) / (parseInt(t) || 1) * 100); }
+function pillCls(v) { return v >= 90 ? 'danger' : v >= 70 ? 'warn' : ''; }
+
+function showToast(msg, type) {
+    type = type || 'info';
+    var c = document.getElementById('toastContainer');
+    var icons = { success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>', info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' };
+    var d = document.createElement('div');
+    d.className = 'toast ' + type;
+    d.innerHTML = (icons[type] || icons.info) + '<span>' + msg + '</span>';
+    c.appendChild(d);
+    setTimeout(function () { d.classList.add('removing'); setTimeout(function () { d.remove(); }, 300); }, 3000);
+}
+
+function setStatus(s, t) { var e = document.getElementById('statusIndicator'); e.className = 'status-indicator ' + s; e.querySelector('.status-text').textContent = t; }
+function showView(id) {
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    var footer = document.querySelector('.global-footer');
+    if (footer) {
+        if (id === 'terminalView') {
+            footer.classList.add('hidden');
+        } else {
+            footer.classList.remove('hidden');
+        }
+    }
+}
+
+// ==================== Login Form ====================
+function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.auth-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+    document.getElementById(tab === 'password' ? 'passwordAuth' : 'keyAuth').classList.add('active');
+}
+
+function togglePassword() {
+    var i = document.getElementById('password');
+    i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+// Ripple
+var btnConnect = document.querySelector('.btn-connect');
+if (btnConnect) {
+    btnConnect.addEventListener('click', function (e) {
+        var r = this.querySelector('.btn-ripple'), b = this.getBoundingClientRect(), s = Math.max(b.width, b.height);
+        r.style.width = r.style.height = s + 'px';
+        r.style.left = (e.clientX - b.left - s / 2) + 'px';
+        r.style.top = (e.clientY - b.top - s / 2) + 'px';
+        r.classList.remove('active'); void r.offsetWidth; r.classList.add('active');
+    });
+}
+
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var h = document.getElementById('hostname').value.trim();
+    var u = document.getElementById('username').value.trim() || 'root';
+    if (!h) { showToast('请输入主机', 'error'); return; }
+    document.getElementById('username').value = u;
+    connectFromLogin();
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('terminalView').classList.contains('active')) {
+        closeActiveTab();
+    }
+});
+
+// ==================== Proxy Config ====================
+var PROXY_KEY = 'webssh_proxy';
+
+function toggleProxyPanel() {
+    var checked = document.getElementById('enableProxy').checked;
+    var panel = document.getElementById('proxyPanel');
+    if (checked) { panel.classList.add('show'); }
+    else { panel.classList.remove('show'); }
+}
+
+function saveProxyConfig() {
+    if (document.getElementById('rememberProxy').checked) {
+        var cfg = {
+            host: document.getElementById('proxyHost').value,
+            port: document.getElementById('proxyPort').value,
+            user: document.getElementById('proxyUser').value,
+            pass: document.getElementById('proxyPass').value
+        };
+        localStorage.setItem(PROXY_KEY, JSON.stringify(cfg));
+        showToast('代理配置已保存', 'success');
+    } else {
+        localStorage.removeItem(PROXY_KEY);
+    }
+}
+
+function loadProxyConfig() {
+    try {
+        var cfg = JSON.parse(localStorage.getItem(PROXY_KEY));
+        if (cfg) {
+            document.getElementById('proxyHost').value = cfg.host || '';
+            document.getElementById('proxyPort').value = cfg.port || '1080';
+            document.getElementById('proxyUser').value = cfg.user || '';
+            document.getElementById('proxyPass').value = cfg.pass || '';
+            document.getElementById('enableProxy').checked = true;
+            document.getElementById('rememberProxy').checked = true;
+        }
+    } catch (e) { }
+}
+
+function getProxyInfo() {
+    if (!document.getElementById('enableProxy').checked) return {};
+    var h = document.getElementById('proxyHost').value.trim();
+    if (!h) return {};
+    return {
+        proxyHost: h,
+        proxyPort: parseInt(document.getElementById('proxyPort').value) || 1080,
+        proxyUser: document.getElementById('proxyUser').value,
+        proxyPass: document.getElementById('proxyPass').value
+    };
+}
+
+// ==================== Build SSH Info ====================
+function buildSSHInfoFromForm() {
+    var at = document.querySelector('.auth-tab.active').dataset.tab;
+    var info = {
+        hostname: document.getElementById('hostname').value.trim(),
+        port: parseInt(document.getElementById('port').value) || 22,
+        username: document.getElementById('username').value.trim() || 'root',
+        logintype: at === 'key' ? 1 : 0
+    };
+    if (at === 'password') { info.password = document.getElementById('password').value; }
+    else { info.privateKey = document.getElementById('privateKey').value; info.passphrase = document.getElementById('passphrase').value; }
+    var proxy = getProxyInfo();
+    if (proxy.proxyHost) { info.proxyHost = proxy.proxyHost; info.proxyPort = proxy.proxyPort; info.proxyUser = proxy.proxyUser; info.proxyPass = proxy.proxyPass; }
+    return btoa(unescape(encodeURIComponent(JSON.stringify(info))));
+}
+
+function buildSSHInfoDirect(host, port, user, pass) {
+    var info = { hostname: host, port: parseInt(port) || 22, username: user || 'root', logintype: 0, password: pass || '' };
+    var proxy = getProxyInfo();
+    if (proxy.proxyHost) { info.proxyHost = proxy.proxyHost; info.proxyPort = proxy.proxyPort; info.proxyUser = proxy.proxyUser; info.proxyPass = proxy.proxyPass; }
+    return btoa(unescape(encodeURIComponent(JSON.stringify(info))));
+}
+
+// ==================== Multi-Tab Session Management ====================
+function createSession(hostname, port, username, sshInfo) {
+    var id = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    var termDiv = document.createElement('div');
+    termDiv.className = 'term-instance';
+    termDiv.id = 'term_' + id;
+    document.getElementById('terminalContainer').appendChild(termDiv);
+
+    var savedFont = getCurrentFontSize();
+    var savedColors = getSavedColors();
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light' || (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
+    var defaultFg = isLight ? '#1a1a2e' : '#e8e8f0';
+    var defaultBg = isLight ? 'rgba(0,0,0,0)' : 'rgba(10,10,26,0)';
+    var defaultCursor = isLight ? '#0088cc' : '#00d4ff';
+    var t = new Terminal({
+        cursorBlink: true, cursorStyle: 'bar',
+        fontSize: savedFont,
+        fontFamily: "'JetBrains Mono','Fira Code','Cascadia Code',Consolas,monospace",
+        theme: { background: savedColors.bg === '#0a0a1a' || savedColors.bg === '#e8eaf0' ? defaultBg : savedColors.bg, foreground: savedColors.fg === '#e8e8f0' || savedColors.fg === '#1a1a2e' ? defaultFg : savedColors.fg, cursor: savedColors.cursor === '#00d4ff' || savedColors.cursor === '#0088cc' ? defaultCursor : savedColors.cursor, cursorAccent: isLight ? '#e8eaf0' : '#0a0a1a', selectionBackground: 'rgba(0,136,204,.25)', black: isLight ? '#e8e8f0' : '#1a1a2e', red: '#ff006e', green: isLight ? '#008844' : '#00ff88', yellow: isLight ? '#996600' : '#ffbe0b', blue: isLight ? '#0066cc' : '#00d4ff', magenta: '#7b2ff7', cyan: isLight ? '#0088aa' : '#00d4ff', white: isLight ? '#1a1a2e' : '#e8e8f0', brightBlack: isLight ? '#999' : '#3a3a5e', brightRed: '#ff4488', brightGreen: isLight ? '#00aa55' : '#33ffaa', brightYellow: isLight ? '#aa7700' : '#ffdd33', brightBlue: isLight ? '#0088ff' : '#33ddff', brightMagenta: '#9955ff', brightCyan: isLight ? '#00aacc' : '#33ddff', brightWhite: isLight ? '#000' : '#fff' },
+        allowTransparency: true, scrollback: 10000
+    });
+    var fa = new FitAddon.FitAddon();
+    t.loadAddon(fa);
+    t.loadAddon(new WebLinksAddon.WebLinksAddon());
+    t.open(termDiv);
+
+    var session = {
+        id: id, hostname: hostname, port: port, username: username,
+        sshInfo: sshInfo, ws: null, term: t, fitAddon: fa, termDiv: termDiv,
+        heartbeat: null, sysInfoTimer: null, resizeObs: null
+    };
+
+    session.resizeObs = new ResizeObserver(function () { try { fa.fit(); } catch (e) { } });
+    session.resizeObs.observe(termDiv);
+
+    sessions.push(session);
+    return session;
+}
+
+function switchTab(idx) {
+    if (idx < 0 || idx >= sessions.length) return;
+    activeIdx = idx;
+    sessions.forEach(function (s, i) {
+        if (i === idx) { s.termDiv.classList.add('active'); }
+        else { s.termDiv.classList.remove('active'); }
+    });
+    renderTabs();
+    var s = sessions[idx];
+    setTimeout(function () {
+        try {
+            if (s.consoleMode) fitConsoleToContainer(s);
+            else if (s.fitAddon) s.fitAddon.fit();
+            s.term.focus();
+        } catch (e) { }
+    }, 100);
+    updateMetricsForActive();
+    updateFontSizeLabel();
+}
+
+function renderTabs() {
+    var bar = document.getElementById('tabBar');
+    bar.innerHTML = sessions.map(function (s, i) {
+        var cls = i === activeIdx ? 'ssh-tab active' : 'ssh-tab';
+        return '<div class="' + cls + '" onclick="switchTab(' + i + ')">' +
+            '<span class="tab-ip" onclick="event.stopPropagation();copyIP(\'' + esc(s.hostname) + '\')" title="点击复制IP">' + esc(s.hostname) + '</span>' +
+            '<button class="tab-close" onclick="event.stopPropagation();closeTab(' + i + ')">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+    }).join('');
+}
+
+function updateMetricsForActive() {
+    document.getElementById('topbarMetrics').innerHTML = '';
+    if (activeIdx >= 0 && sessions[activeIdx]) {
+        var s = sessions[activeIdx];
+        if (s._lastMetrics) renderMetrics(s._lastMetrics);
+    }
+}
+
+// ==================== Connect ====================
+function connectSession(session) {
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var cols = session.term.cols, rows = session.term.rows;
+    var wsUrl = proto + '//' + location.host + '/webssh-api/term?cols=' + cols + '&rows=' + rows;
+    var ws = new WebSocket(wsUrl);
+    session.ws = ws;
+    var got = false;
+
+    ws.onopen = function () { ws.send(session.sshInfo); };
+
+    ws.onmessage = function (e) {
+        if (!got) {
+            got = true;
+            showToast(session.hostname + ' 连接成功', 'success');
+            setupAutoCopy(session);
+            session.heartbeat = setInterval(function () { if (ws.readyState === 1) ws.send('ping'); }, 30000);
+            if (document.getElementById('enableSysInfo').checked) {
+                fetchSysInfoFor(session);
+                var intv = getSysInterval() * 1000;
+                session.sysInfoTimer = setInterval(function () { fetchSysInfoFor(session); }, intv);
+            }
+        }
+        session.term.write(e.data);
+    };
+
+    ws.onerror = function () { showToast(session.hostname + ' 连接失败', 'error'); };
+    ws.onclose = function () {
+        if (session.heartbeat) { clearInterval(session.heartbeat); session.heartbeat = null; }
+        if (session.sysInfoTimer) { clearInterval(session.sysInfoTimer); session.sysInfoTimer = null; }
+        if (!got) showToast(session.hostname + ' 无法连接', 'error');
+    };
+
+    session.term.onData(function (data) { if (ws.readyState === 1) ws.send(data); });
+
+    var resizeHandler = function () {
+        try { session.fitAddon.fit(); } catch (e) { }
+        if (ws.readyState === 1 && session.term) ws.send('resize:' + session.term.rows + ':' + session.term.cols);
+    };
+    addEventListener('resize', resizeHandler);
+    session._resizeHandler = resizeHandler;
+}
+
+function connectFromLogin() {
+    var btn = document.getElementById('connectBtn');
+    btn.classList.add('loading');
+    setStatus('connecting', '连接中...');
+
+    var sshInfo = buildSSHInfoFromForm();
+    var h = document.getElementById('hostname').value.trim();
+    var p = parseInt(document.getElementById('port').value) || 22;
+    var u = document.getElementById('username').value.trim() || 'root';
+
+    var session = createSession(h, p, u, sshInfo);
+    showView('terminalView');
+    switchTab(sessions.length - 1);
+
+    setTimeout(function () {
+        try { session.fitAddon.fit(); } catch (e) { }
+        connectSession(session);
+        btn.classList.remove('loading');
+        setStatus('', '就绪');
+        renderScriptBookmarks();
+    }, 300);
+}
+
+// ==================== Tab Actions ====================
+function closeTab(idx) {
+    if (idx < 0 || idx >= sessions.length) return;
+    var s = sessions[idx];
+    if (s.ws) s.ws.close();
+    if (s.heartbeat) clearInterval(s.heartbeat);
+    if (s.sysInfoTimer) clearInterval(s.sysInfoTimer);
+    if (s.resizeObs) s.resizeObs.disconnect();
+    if (s._resizeHandler) removeEventListener('resize', s._resizeHandler);
+    if (s.term) s.term.dispose();
+    if (s.termDiv) s.termDiv.remove();
+    sessions.splice(idx, 1);
+
+    if (sessions.length === 0) {
+        activeIdx = -1;
+        document.getElementById('scriptDrawer').classList.remove('open');
+        document.getElementById('sftpPanel').classList.remove('open');
+        showView('loginView');
+        setStatus('', '就绪');
+        showToast('已断开', 'info');
+    } else {
+        activeIdx = Math.min(idx, sessions.length - 1);
+        switchTab(activeIdx);
+    }
+    renderTabs();
+}
+
+function closeActiveTab() { if (activeIdx >= 0) closeTab(activeIdx); }
+
+function reconnectTab() {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    var s = sessions[activeIdx];
+    if (s.ws) s.ws.close();
+    if (s.heartbeat) { clearInterval(s.heartbeat); s.heartbeat = null; }
+    if (s.sysInfoTimer) { clearInterval(s.sysInfoTimer); s.sysInfoTimer = null; }
+    showToast('重新连接 ' + s.hostname + '...', 'info');
+    setTimeout(function () {
+        if (s.consoleMode) connectConsoleSession(s);
+        else connectSession(s);
+    }, 300);
+}
+
+function showAddTab() { document.getElementById('addTabModal').classList.add('show'); document.getElementById('newTabHost').focus(); }
+function hideAddTab() { document.getElementById('addTabModal').classList.remove('show'); }
+
+function addNewTab() {
+    var h = document.getElementById('newTabHost').value.trim();
+    var p = document.getElementById('newTabPort').value || '22';
+    var u = document.getElementById('newTabUser').value.trim() || 'root';
+    var pw = document.getElementById('newTabPass').value;
+    if (!h) { showToast('请输入主机地址', 'error'); return; }
+    var sshInfo = buildSSHInfoDirect(h, p, u, pw);
+    var session = createSession(h, parseInt(p), u, sshInfo);
+    switchTab(sessions.length - 1);
+    hideAddTab();
+    setTimeout(function () {
+        try { session.fitAddon.fit(); } catch (e) { }
+        connectSession(session);
+    }, 300);
+}
+
+// ==================== System Info ====================
+function fetchSysInfoFor(session) {
+    if (!session.sshInfo) return;
+    fetch('/webssh-api/sysinfo?sshInfo=' + encodeURIComponent(session.sshInfo))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.Msg === 'success' && d.Data) {
+                session._lastMetrics = d.Data;
+                if (sessions[activeIdx] === session) renderMetrics(d.Data);
+            }
+        })
+        .catch(function () { });
+}
+
+function fmtUptime(secs) {
+    secs = parseInt(secs) || 0;
+    var d = Math.floor(secs / 86400);
+    var h = Math.floor((secs % 86400) / 3600);
+    var m = Math.floor((secs % 3600) / 60);
+    if (d > 0) return d + 'd ' + h + 'h';
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm';
+}
+
+function renderMetrics(d) {
+    var c = document.getElementById('topbarMetrics');
+    var mp = pct(d.memUsed, d.memTotal), dp = pct(d.diskUsed, d.diskTotal), cv = parseFloat(d.cpuUsage) || 0;
+    var pills = [
+        { i: 'server', l: d.os || '?' },
+        { i: 'cpu', l: d.arch, v: (d.cpuCores || '?') + 'C' },
+        { i: 'activity', l: 'CPU', v: cv.toFixed(0) + '%', c: pillCls(cv) },
+        { i: 'memory', l: 'MEM', v: fmtB(d.memUsed) + '/' + fmtB(d.memTotal), c: pillCls(mp) },
+        { i: 'hdd', l: 'DISK', v: fmtB(d.diskUsed) + '/' + fmtB(d.diskTotal), c: pillCls(dp) },
+        { i: 'zap', l: 'Load', v: d.load || '0' },
+        { i: 'down', l: 'IN', v: fmtB(d.rxTotal) },
+        { i: 'up', l: 'OUT', v: fmtB(d.txTotal) },
+        { i: 'clock', l: 'UP', v: fmtUptime(d.uptime) }
+    ];
+    var sv = { server: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>', cpu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg>', activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>', memory: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>', hdd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>', zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>', down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>', up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>', clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' };
+    c.innerHTML = pills.map(function (p) {
+        var cls = p.c ? ' ' + p.c : '';
+        return '<div class="metric-pill' + cls + '">' + (sv[p.i] || '') + p.l + (p.v ? ' <span class="metric-value">' + p.v + '</span>' : '') + '</div>';
+    }).join('');
+}
+
+// ==================== Drawers ====================
+function toggleConnDrawer() { document.getElementById('connDrawer').classList.toggle('open'); }
+function toggleScriptDrawer() {
+    document.getElementById('scriptDrawer').classList.toggle('open');
+    setTimeout(function () { if (activeIdx >= 0 && sessions[activeIdx]) try { sessions[activeIdx].fitAddon.fit(); } catch (e) { } }, 350);
+}
+function toggleSftp() {
+    var p = document.getElementById('sftpPanel');
+    var wasOpen = p.classList.contains('open');
+    p.classList.toggle('open');
+    if (!wasOpen && activeIdx >= 0) sftpLoad(document.getElementById('sftpPath').value || '/');
+    setTimeout(function () { if (activeIdx >= 0 && sessions[activeIdx]) try { sessions[activeIdx].fitAddon.fit(); } catch (e) { } }, 350);
+}
+
+// ==================== Connection Bookmarks ====================
+var CBK = 'webssh_conn_bm';
+var SBK = 'webssh_script_bm';
+
+function loadBM(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } }
+function saveBM(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+function renderConnBookmarks() {
+    var l = document.getElementById('connBookmarkList'), bms = loadBM(CBK);
+    if (!bms.length) { l.innerHTML = '<div class="bm-empty">暂无书签</div>'; return; }
+    l.innerHTML = bms.map(function (b, i) {
+        return '<div class="bm-item" onclick="applyConn(' + i + ')"><div class="bm-item-info"><div class="bm-item-name">' + esc(b.username + '@' + b.hostname) + '</div><div class="bm-item-host">:' + (b.port || 22) + '</div></div><button class="bm-item-del" onclick="event.stopPropagation();delConn(' + i + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+    }).join('');
+}
+
+function saveConnBookmark() {
+    var h = document.getElementById('hostname').value.trim(), u = document.getElementById('username').value.trim() || 'root', p = parseInt(document.getElementById('port').value) || 22;
+    if (!h) { showToast('请先填写主机', 'error'); return; }
+    var at = document.querySelector('.auth-tab.active').dataset.tab;
+    var bm = { hostname: h, port: p, username: u, authType: at };
+    if (at === 'password') bm.password = document.getElementById('password').value;
+    var bms = loadBM(CBK), idx = bms.findIndex(function (b) { return b.hostname === h && b.port === p && b.username === u; });
+    if (idx >= 0) bms[idx] = bm; else bms.push(bm);
+    saveBM(CBK, bms); renderConnBookmarks(); showToast('已保存', 'success');
+}
+
+function applyConn(i) {
+    var b = loadBM(CBK)[i]; if (!b) return;
+    document.getElementById('hostname').value = b.hostname || '';
+    document.getElementById('port').value = b.port || 22;
+    document.getElementById('username').value = b.username || 'root';
+    if (b.authType === 'key') switchAuthTab('key');
+    else { switchAuthTab('password'); if (b.password) document.getElementById('password').value = b.password; }
+    showToast('已填入', 'info');
+}
+
+function delConn(i) { var bms = loadBM(CBK); bms.splice(i, 1); saveBM(CBK, bms); renderConnBookmarks(); showToast('已删除', 'info'); }
+
+// ==================== Preset Scripts ====================
+var PRESET_SCRIPTS = [
+    { name: '切换到 root', cmd: 'sudo -i' },
+    { name: '重新启动', cmd: 'reboot' },
+    { name: '关机', cmd: 'shutdown -h now' },
+    { name: '修改 root 密码', cmd: 'passwd root' },
+    { name: '查看系统信息', cmd: 'uname -a' },
+    { name: '查看系统时间', cmd: 'date && timedatectl 2>/dev/null' },
+    { name: '查看磁盘使用', cmd: 'df -h' },
+    { name: '查看内存使用', cmd: 'free -h' },
+    { name: '查看 CPU 信息', cmd: 'lscpu | head -20' },
+    { name: '查看网络接口', cmd: 'ip addr show' },
+    { name: '查看端口监听', cmd: 'ss -tlnp' },
+    { name: '查看进程列表', cmd: 'ps aux --sort=-%mem | head -20' },
+    { name: '查看登录记录', cmd: 'last -20' },
+    { name: '查看系统日志', cmd: 'journalctl -xe --no-pager | tail -50' },
+    { name: 'Debian 切换阿里云源', cmd: "sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list && apt update" },
+    { name: 'Ubuntu 切换阿里云源', cmd: "sed -i 's|archive.ubuntu.com|mirrors.aliyun.com|g' /etc/apt/sources.list && apt update" },
+    { name: 'CentOS 切换阿里云源', cmd: "sed -i 's|mirror.centos.org|mirrors.aliyun.com|g' /etc/yum.repos.d/CentOS-*.repo && yum makecache" },
+    { name: 'Debian/Ubuntu 安装常用工具', cmd: 'apt update && apt install -y sudo wget curl vim net-tools' },
+    { name: 'CentOS 安装常用工具', cmd: 'yum install -y sudo wget curl vim net-tools' },
+    { name: '安装 Docker', cmd: 'curl -fsSL https://get.docker.com | sh' },
+    { name: '启动 Docker', cmd: 'systemctl enable docker && systemctl start docker' },
+    { name: '查看 Docker 容器', cmd: 'docker ps -a' },
+    { name: '查看 Docker 镜像', cmd: 'docker images' },
+    { name: '安装 Docker Compose', cmd: 'curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose' },
+    { name: '开启 BBR 加速', cmd: 'echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf && echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf && sysctl -p' },
+    { name: '查看 BBR 状态', cmd: 'sysctl net.ipv4.tcp_congestion_control && lsmod | grep bbr' },
+    { name: '防火墙关闭 (Debian)', cmd: 'systemctl stop ufw 2>/dev/null; iptables -F; echo "防火墙已关闭"' },
+    { name: '防火墙关闭 (CentOS)', cmd: 'systemctl stop firewalld && systemctl disable firewalld && echo "防火墙已关闭"' },
+    { name: '修改 SSH 端口', cmd: 'read -p "输入新端口: " p && sed -i "s/^#*Port .*/Port $p/" /etc/ssh/sshd_config && systemctl restart sshd && echo "SSH端口已改为 $p"' },
+    { name: '允许 root SSH 登录', cmd: 'sed -i "s/^#*PermitRootLogin.*/PermitRootLogin yes/" /etc/ssh/sshd_config && systemctl restart sshd && echo "已允许root登录"' },
+    { name: '测速 (speedtest)', cmd: 'curl -sL https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python3' },
+    { name: '查看公网 IP', cmd: 'curl -s ip.sb && echo ""' },
+    { name: '清理系统日志', cmd: 'journalctl --vacuum-size=50M && echo "日志已清理"' },
+    { name: '更新系统 (Debian/Ubuntu)', cmd: 'apt update && apt upgrade -y' },
+    { name: '更新系统 (CentOS)', cmd: 'yum update -y' },
+    { name: '查看定时任务', cmd: 'crontab -l 2>/dev/null; echo "---系统级---"; cat /etc/crontab' }
+];
+var showPresets = false;
+
+function renderScriptBookmarks() {
+    var l = document.getElementById('scriptBookmarkList'), bms = loadBM(SBK);
+    var html = '';
+
+    // Preset entry
+    if (!showPresets) {
+        html += '<div class="bm-item preset-entry" onclick="event.stopPropagation();showPresets=true;renderScriptBookmarks()"><div class="bm-item-info"><div class="bm-item-name" style="color:var(--c1)">📦 推荐脚本</div><div class="bm-item-host">点击查看常用命令</div></div><span class="bm-item-run" style="color:var(--c1)">›</span></div>';
+    } else {
+        html += '<div class="bm-item" onclick="event.stopPropagation();showPresets=false;renderScriptBookmarks()" style="border-color:rgba(0,212,255,.15)"><div class="bm-item-info"><div class="bm-item-name" style="color:var(--c1)">‹ 返回</div></div></div>';
+        html += PRESET_SCRIPTS.map(function (p) {
+            return '<div class="bm-item" onclick="runPresetScript(\'' + p.cmd.replace(/'/g, "\\'").replace(/"/g, "&quot;") + '\')" title="' + esc(p.cmd) + '"><div class="bm-item-info"><div class="bm-item-name">' + esc(p.name) + '</div><div class="bm-item-host">' + esc(p.cmd.substring(0, 35)) + '</div></div><span class="bm-item-run">▶</span></div>';
+        }).join('');
+        l.innerHTML = html;
+        return;
+    }
+
+    // User scripts
+    if (bms.length) {
+        html += bms.map(function (b, i) {
+            return '<div class="bm-item" onclick="runScript(' + i + ')" title="' + esc(b.cmd) + '"><div class="bm-item-info"><div class="bm-item-name">' + esc(b.name) + '</div><div class="bm-item-host">' + esc(b.cmd.substring(0, 35)) + '</div></div><span class="bm-item-run">▶</span><button class="bm-item-del" onclick="event.stopPropagation();delScript(' + i + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+        }).join('');
+    } else {
+        html += '<div class="bm-empty">暂无自定义脚本</div>';
+    }
+    l.innerHTML = html;
+}
+
+function runPresetScript(cmd) {
+    if (activeIdx < 0 || !sessions[activeIdx] || !sessions[activeIdx].ws || sessions[activeIdx].ws.readyState !== 1) { showToast('无活动连接', 'error'); return; }
+    sessions[activeIdx].ws.send(cmd + '\n');
+    showToast('已执行', 'success');
+    sessions[activeIdx].term.focus();
+}
+
+function saveScriptBookmark() {
+    var n = document.getElementById('scriptName').value.trim(), c = document.getElementById('scriptContent').value.trim();
+    if (!n || !c) { showToast('名称和命令不能为空', 'error'); return; }
+    var bms = loadBM(SBK); bms.push({ name: n, cmd: c }); saveBM(SBK, bms);
+    document.getElementById('scriptName').value = ''; document.getElementById('scriptContent').value = '';
+    renderScriptBookmarks(); showToast('脚本已保存', 'success');
+}
+
+function runScript(i) {
+    var b = loadBM(SBK)[i]; if (!b) return;
+    if (activeIdx < 0 || !sessions[activeIdx] || !sessions[activeIdx].ws || sessions[activeIdx].ws.readyState !== 1) { showToast('无活动连接', 'error'); return; }
+    sessions[activeIdx].ws.send(b.cmd + '\n');
+    showToast('已执行: ' + b.name, 'success');
+    sessions[activeIdx].term.focus();
+}
+
+function delScript(i) { var bms = loadBM(SBK); bms.splice(i, 1); saveBM(SBK, bms); renderScriptBookmarks(); showToast('已删除', 'info'); }
+
+// ==================== SFTP ====================
+function sftpLoad(path) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    var sshInfo = sessions[activeIdx].sshInfo;
+    sftpCurrentPath = path;
+    document.getElementById('sftpPath').value = path;
+    document.getElementById('sftpBody').innerHTML = '<div class="sftp-loading">加载中...</div>';
+    fetch('/webssh-api/file/list?sshInfo=' + encodeURIComponent(sshInfo) + '&path=' + encodeURIComponent(path))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.Msg !== 'success') { document.getElementById('sftpBody').innerHTML = '<div class="sftp-loading" style="color:var(--err)">' + esc(d.Msg) + '</div>'; return; }
+            var list = (d.Data && d.Data.list) || [];
+            if (!list.length) { document.getElementById('sftpBody').innerHTML = '<div class="sftp-loading">空目录</div>'; return; }
+            document.getElementById('sftpBody').innerHTML = list.map(function (f) {
+                var isDir = f.IsDir;
+                var fp = (path === '/' ? '/' : path + '/') + f.Name;
+                var fpSafe = fp.replace(/'/g, "\\'");
+                var icon = isDir ? '<svg class="sftp-icon dir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' : '<svg class="sftp-icon file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>';
+                var click = isDir ? 'onclick="sftpLoad(\'' + fpSafe + '\')"' : 'onclick="sftpDownload(\'' + fpSafe + '\')"';
+                var dl = isDir ? '' : '<button class="sftp-dl" onclick="event.stopPropagation();sftpDownload(\'' + fpSafe + '\')" title="下载"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>';
+                return '<div class="sftp-row" ' + click + '>' + icon + '<span class="sftp-name">' + esc(f.Name) + '</span><span class="sftp-meta">' + f.Size + '</span>' + dl + '</div>';
+            }).join('');
+        })
+        .catch(function () { document.getElementById('sftpBody').innerHTML = '<div class="sftp-loading" style="color:var(--err)">加载失败</div>'; });
+}
+
+function sftpGo() { sftpLoad(document.getElementById('sftpPath').value.trim() || '/'); }
+function sftpUp() { var p = sftpCurrentPath.replace(/\/$/, ''); var i = p.lastIndexOf('/'); sftpLoad(i <= 0 ? '/' : p.substring(0, i)); }
+
+function sftpDownload(path) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    window.open('/webssh-api/file/download?sshInfo=' + encodeURIComponent(sessions[activeIdx].sshInfo) + '&path=' + encodeURIComponent(path), '_blank');
+}
+
+function sftpUpload() {
+    var input = document.getElementById('sftpUploadInput');
+    if (!input.files.length || activeIdx < 0) return;
+    var sshInfo = sessions[activeIdx].sshInfo;
+    Array.from(input.files).forEach(function (f) {
+        var fd = new FormData();
+        fd.append('file', f); fd.append('sshInfo', sshInfo); fd.append('path', sftpCurrentPath); fd.append('id', Date.now().toString());
+        fetch('/webssh-api/file/upload', { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (d.Msg === 'success') { showToast('上传成功: ' + f.name, 'success'); sftpLoad(sftpCurrentPath); } else showToast('上传失败', 'error'); })
+            .catch(function () { showToast('上传失败', 'error'); });
+    });
+    input.value = '';
+}
+
+document.getElementById('sftpPath').addEventListener('keydown', function (e) { if (e.key === 'Enter') sftpGo(); });
+
+// ==================== Copy / Paste / Context Menu ====================
+function termCopy() {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    var sel = sessions[activeIdx].term.getSelection();
+    if (!sel) { showToast('没有选中内容', 'info'); return; }
+    navigator.clipboard.writeText(sel).then(function () {
+        showCopyToast();
+    }).catch(function () {
+        fallbackCopy(sel);
+    });
+    hideCtxMenu();
+}
+
+function termPaste() {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    navigator.clipboard.readText().then(function (text) {
+        if (text && sessions[activeIdx].ws && sessions[activeIdx].ws.readyState === 1) {
+            sessions[activeIdx].ws.send(text);
+            sessions[activeIdx].term.focus();
+        }
+    }).catch(function () {
+        showToast('无法读取剪贴板，请使用 Ctrl+Shift+V', 'info');
+    });
+    hideCtxMenu();
+}
+
+function termSelectAll() {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    sessions[activeIdx].term.selectAll();
+    hideCtxMenu();
+}
+
+function termClear() {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    sessions[activeIdx].term.clear();
+    hideCtxMenu();
+}
+
+function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showCopyToast(); } catch (e) { }
+    document.body.removeChild(ta);
+}
+
+function showCopyToast() {
+    var d = document.createElement('div');
+    d.className = 'copy-toast';
+    d.textContent = '已复制到剪贴板';
+    document.body.appendChild(d);
+    setTimeout(function () { d.remove(); }, 1400);
+}
+
+// Auto-copy on selection
+function setupAutoCopy(session) {
+    session.term.onSelectionChange(function () {
+        var sel = session.term.getSelection();
+        if (sel && sel.length > 0) {
+            navigator.clipboard.writeText(sel).then(function () {
+                showCopyToast();
+            }).catch(function () {
+                fallbackCopy(sel);
+            });
+        }
+    });
+}
+
+// Right-click context menu
+document.getElementById('terminalContainer').addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    var menu = document.getElementById('ctxMenu');
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 160) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+    menu.classList.add('show');
+});
+
+document.addEventListener('click', function () { hideCtxMenu(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideCtxMenu(); });
+
+function hideCtxMenu() {
+    document.getElementById('ctxMenu').classList.remove('show');
+}
+
+// Ctrl+Shift+C / Ctrl+Shift+V shortcuts
+document.addEventListener('keydown', function (e) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); termCopy(); }
+    if (e.ctrlKey && e.shiftKey && e.key === 'V') { e.preventDefault(); termPaste(); }
+});
+
+// ==================== Command Input Bar ====================
+function sendCmdInput() {
+    var input = document.getElementById('cmdInput');
+    var text = input.value;
+    if (!text) return;
+    if (activeIdx < 0 || !sessions[activeIdx] || !sessions[activeIdx].ws || sessions[activeIdx].ws.readyState !== 1) {
+        showToast('无活动连接', 'error');
+        return;
+    }
+    sessions[activeIdx].ws.send(text + '\n');
+    input.value = '';
+    input.style.height = 'auto';
+    sessions[activeIdx].term.focus();
+}
+
+(function () {
+    var input = document.getElementById('cmdInput');
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendCmdInput();
+        }
+    });
+    input.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+})();
+
+// ==================== Copy IP ====================
+function copyIP(ip) {
+    navigator.clipboard.writeText(ip).then(function () {
+        showCopyToast();
+    }).catch(function () {
+        fallbackCopy(ip);
+    });
+}
+
+// ==================== Font Size ====================
+var FONT_KEY = 'webssh_fontsize';
+var COLOR_KEY = 'webssh_colors';
+
+function getCurrentFontSize() {
+    var saved = parseInt(localStorage.getItem(FONT_KEY));
+    return saved || (window.innerWidth <= 520 ? 13 : 15);
+}
+
+function changeFontSize(delta) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    var s = sessions[activeIdx];
+    if (s.consoleMode) {
+        s.consoleFontDelta = (s.consoleFontDelta || 0) + delta;
+        fitConsoleToContainer(s);
+        return;
+    }
+    var cur = s.term.options.fontSize || 15;
+    var nv = Math.max(8, Math.min(30, cur + delta));
+    s.term.options.fontSize = nv;
+    localStorage.setItem(FONT_KEY, nv);
+    document.getElementById('fontSizeLabel').textContent = nv;
+    try { s.fitAddon.fit(); } catch (e) { }
+    if (s.ws && s.ws.readyState === 1) s.ws.send('resize:' + s.term.rows + ':' + s.term.cols);
+}
+
+function updateFontSizeLabel() {
+    if (activeIdx >= 0 && sessions[activeIdx]) {
+        document.getElementById('fontSizeLabel').textContent = sessions[activeIdx].term.options.fontSize || 15;
+    }
+}
+
+// ==================== Color Picker ====================
+var FG_COLORS = ['#e8e8f0','#ffffff','#00ff88','#00d4ff','#ffbe0b','#ff006e','#7b2ff7','#ff4488','#33ffaa','#33ddff','#ffdd33','#9955ff','#f97316','#a3e635','#e879f9','#94a3b8'];
+var BG_COLORS = ['#0a0a1a','#000000','#1a1a2e','#0d1117','#1e1e2e','#282a36','#002b36','#2e3440','#1a1b26','#161616','#0c0c1d','#121212','#0f172a','#18181b','#27272a','#1c1917'];
+var CURSOR_COLORS = ['#00d4ff','#ffffff','#00ff88','#ffbe0b','#ff006e','#7b2ff7','#ff4488','#f97316','#e879f9','#a3e635'];
+
+function toggleColorPicker() {
+    var p = document.getElementById('colorPanel');
+    if (p.classList.contains('show')) {
+        p.classList.remove('show');
+    } else {
+        renderSwatches();
+        p.classList.add('show');
+    }
+}
+
+function renderSwatches() {
+    var colors = getSavedColors();
+    renderSwatchGroup('fgSwatches', FG_COLORS, colors.fg, applyFgColor);
+    renderSwatchGroup('bgSwatches', BG_COLORS, colors.bg, applyBgColor);
+    renderSwatchGroup('cursorSwatches', CURSOR_COLORS, colors.cursor, applyCursorColor);
+}
+
+function renderSwatchGroup(containerId, palette, active, onClick) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = palette.map(function (c) {
+        var cls = c.toLowerCase() === active.toLowerCase() ? ' active' : '';
+        return '<div class="color-swatch' + cls + '" style="background:' + c + '" data-fn="' + onClick.name + '" data-color="' + c + '" title="' + c + '"></div>';
+    }).join('');
+    el.querySelectorAll('.color-swatch').forEach(function (s) {
+        s.addEventListener('click', function (e) {
+            e.stopPropagation();
+            window[this.dataset.fn](this.dataset.color);
+        });
+    });
+}
+
+function getSavedColors() {
+    try { var c = JSON.parse(localStorage.getItem(COLOR_KEY)); if (c) return c; } catch (e) { }
+    return { fg: '#e8e8f0', bg: '#0a0a1a', cursor: '#00d4ff' };
+}
+
+function saveColors(fg, bg, cursor) {
+    localStorage.setItem(COLOR_KEY, JSON.stringify({ fg: fg, bg: bg, cursor: cursor }));
+}
+
+function applyFgColor(color) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    sessions[activeIdx].term.options.theme = Object.assign({}, sessions[activeIdx].term.options.theme, { foreground: color });
+    var c = getSavedColors(); c.fg = color; saveColors(c.fg, c.bg, c.cursor);
+    document.getElementById('fgCustomColor').value = color;
+    renderSwatches();
+}
+
+function applyBgColor(color) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    sessions[activeIdx].term.options.theme = Object.assign({}, sessions[activeIdx].term.options.theme, { background: color });
+    document.querySelector('.term-body').style.background = color;
+    var c = getSavedColors(); c.bg = color; saveColors(c.fg, c.bg, c.cursor);
+    document.getElementById('bgCustomColor').value = color;
+    renderSwatches();
+}
+
+function applyCursorColor(color) {
+    if (activeIdx < 0 || !sessions[activeIdx]) return;
+    sessions[activeIdx].term.options.theme = Object.assign({}, sessions[activeIdx].term.options.theme, { cursor: color });
+    var c = getSavedColors(); c.cursor = color; saveColors(c.fg, c.bg, c.cursor);
+    document.getElementById('cursorCustomColor').value = color;
+    renderSwatches();
+}
+
+function resetTermColors() {
+    localStorage.removeItem(COLOR_KEY);
+    if (activeIdx >= 0 && sessions[activeIdx]) {
+        sessions[activeIdx].term.options.theme = {
+            background: 'rgba(10,10,26,0)', foreground: '#e8e8f0', cursor: '#00d4ff', cursorAccent: '#0a0a1a',
+            selectionBackground: 'rgba(0,212,255,.25)', black: '#1a1a2e', red: '#ff006e', green: '#00ff88',
+            yellow: '#ffbe0b', blue: '#00d4ff', magenta: '#7b2ff7', cyan: '#00d4ff', white: '#e8e8f0',
+            brightBlack: '#3a3a5e', brightRed: '#ff4488', brightGreen: '#33ffaa', brightYellow: '#ffdd33',
+            brightBlue: '#33ddff', brightMagenta: '#9955ff', brightCyan: '#33ddff', brightWhite: '#fff'
+        };
+        document.querySelector('.term-body').style.background = '';
+    }
+    document.getElementById('fgCustomColor').value = '#e8e8f0';
+    document.getElementById('bgCustomColor').value = '#0a0a1a';
+    document.getElementById('cursorCustomColor').value = '#00d4ff';
+    renderSwatches();
+    showToast('已重置默认颜色', 'info');
+}
+
+// Close color picker on outside click
+document.addEventListener('click', function (e) {
+    var panel = document.getElementById('colorPanel');
+    var btn = document.getElementById('colorPickerBtn');
+    if (panel && panel.classList.contains('show') && !panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.classList.remove('show');
+    }
+});
+
+// ==================== Theme ====================
+var THEME_KEY = 'webssh_theme';
+var themes = ['dark', 'light', 'auto'];
+var themeIcons = {
+    dark: '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>',
+    light: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+    auto: '<circle cx="12" cy="12" r="4" fill="none"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/><path d="M12 6a6 6 0 010 12V6z" fill="currentColor" opacity=".3"/>'
+};
+var themeLabels = { dark: '暗色模式', light: '亮色模式', auto: '跟随系统' };
+
+function applyTheme(theme) {
+    if (theme === 'auto') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', theme);
+    }
+    var icon = document.getElementById('themeIcon');
+    if (icon) icon.innerHTML = themeIcons[theme] || themeIcons.auto;
+}
+
+function cycleTheme() {
+    var cur = localStorage.getItem(THEME_KEY) || 'auto';
+    var idx = themes.indexOf(cur);
+    var next = themes[(idx + 1) % themes.length];
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+    showToast(themeLabels[next], 'info');
+}
+
+function initTheme() {
+    var saved = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(saved);
+}
+
+// ==================== Click outside to close drawers ====================
+document.addEventListener('click', function (e) {
+    // Close connection bookmark drawer
+    var connDrawer = document.getElementById('connDrawer');
+    var edgeBtns = document.getElementById('edgeBtns');
+    if (connDrawer && connDrawer.classList.contains('open')) {
+        if (!connDrawer.contains(e.target) && !edgeBtns.contains(e.target)) {
+            connDrawer.classList.remove('open');
+        }
+    }
+    // Close script bookmark drawer
+    var scriptDrawer = document.getElementById('scriptDrawer');
+    var termEdge = document.getElementById('termEdgeBtns');
+    if (scriptDrawer && scriptDrawer.classList.contains('open')) {
+        if (!scriptDrawer.contains(e.target) && !(termEdge && termEdge.contains(e.target)) && !e.target.closest('.tb-btn')) {
+            scriptDrawer.classList.remove('open');
+            setTimeout(function () { if (activeIdx >= 0 && sessions[activeIdx]) try { sessions[activeIdx].fitAddon.fit(); } catch (ex) { } }, 350);
+        }
+    }
+    // Close SFTP panel
+    var sftpPanel = document.getElementById('sftpPanel');
+    if (sftpPanel && sftpPanel.classList.contains('open')) {
+        if (!sftpPanel.contains(e.target) && !(termEdge && termEdge.contains(e.target)) && !e.target.closest('.tb-btn')) {
+            sftpPanel.classList.remove('open');
+            setTimeout(function () { if (activeIdx >= 0 && sessions[activeIdx]) try { sessions[activeIdx].fitAddon.fit(); } catch (ex) { } }, 350);
+        }
+    }
+});
+
+// ==================== System Info Interval ====================
+var SYS_INTERVAL_KEY = 'webssh_sys_interval';
+var _sysIntervalTemp = 60;
+
+function getSysInterval() {
+    var v = parseInt(localStorage.getItem(SYS_INTERVAL_KEY));
+    return (v && v >= 5 && v <= 600) ? v : 60;
+}
+
+function changeSysInterval(delta) {
+    _sysIntervalTemp = Math.max(5, Math.min(600, _sysIntervalTemp + delta));
+    document.getElementById('sysIntervalLabel').textContent = _sysIntervalTemp + 's';
+    var btn = document.getElementById('sysIntervalSaveBtn');
+    btn.classList.remove('saved');
+    btn.textContent = '保存';
+}
+
+function saveSysInterval() {
+    var btn = document.getElementById('sysIntervalSaveBtn');
+    if (btn.classList.contains('saved')) {
+        btn.classList.remove('saved');
+        btn.textContent = '保存';
+        return;
+    }
+    localStorage.setItem(SYS_INTERVAL_KEY, _sysIntervalTemp);
+    btn.classList.add('saved');
+    btn.textContent = '已保存';
+
+    // Update login page hint text
+    updateSysInfoHint();
+
+    // Restart polling for all active sessions
+    sessions.forEach(function (s) {
+        if (s.sysInfoTimer) {
+            clearInterval(s.sysInfoTimer);
+            s.sysInfoTimer = setInterval(function () { fetchSysInfoFor(s); }, _sysIntervalTemp * 1000);
+        }
+    });
+    showToast('检测间隔已设为 ' + _sysIntervalTemp + ' 秒', 'success');
+}
+
+function updateSysInfoHint() {
+    var el = document.querySelector('label[for="enableSysInfo"] span:last-child');
+    if (!el) return;
+    var sec = getSysInterval();
+    if (sec >= 60 && sec % 60 === 0) {
+        el.textContent = '连接后检测系统信息（每' + (sec / 60) + '分钟检测一次）';
+    } else {
+        el.textContent = '连接后检测系统信息（每' + sec + '秒检测一次）';
+    }
+}
+
+function initSysInterval() {
+    _sysIntervalTemp = getSysInterval();
+    document.getElementById('sysIntervalLabel').textContent = _sysIntervalTemp + 's';
+    updateSysInfoHint();
+}
+
+// ==================== Settings Panel ====================
+var SETTINGS_KEY = 'webssh_settings';
+var BG_PRESETS = ['#0a0a1a','#0d1117','#1a1a2e','#000000','#1e1e2e','#282a36','#002b36','#2e3440','#e8eaf0','#f0f0f5','#ffffff','#fdf6e3'];
+
+function loadSettings() {
+    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+function toggleSettings() {
+    var p = document.getElementById('settingsPanel');
+    var o = document.getElementById('settingsOverlay');
+    var show = !p.classList.contains('show');
+    p.classList.toggle('show');
+    o.classList.toggle('show');
+    if (show) renderBgSwatches();
+}
+
+function changeZoom(delta) {
+    var s = loadSettings();
+    var cur = s.zoom || 100;
+    var nv = Math.max(50, Math.min(200, cur + delta));
+    s.zoom = nv;
+    saveSettings(s);
+    document.getElementById('zoomLabel').textContent = nv + '%';
+    document.body.style.zoom = (nv / 100);
+}
+
+function changeCardScale(delta) {
+    var s = loadSettings();
+    var cur = s.cardScale || 100;
+    var nv = Math.max(50, Math.min(150, cur + delta));
+    s.cardScale = nv;
+    saveSettings(s);
+    document.getElementById('cardScaleLabel').textContent = nv + '%';
+    applyCardScale(nv);
+}
+
+function applyCardScale(val) {
+    var el = document.querySelector('.login-container');
+    if (el) {
+        el.style.transform = val === 100 ? '' : 'scale(' + (val / 100) + ')';
+        el.style.transformOrigin = 'center center';
+    }
+}
+
+function changeEdgeScale(delta) {
+    var s = loadSettings();
+    var cur = s.edgeScale || 100;
+    var nv = Math.max(50, Math.min(150, cur + delta));
+    s.edgeScale = nv;
+    saveSettings(s);
+    document.getElementById('edgeScaleLabel').textContent = nv + '%';
+    applyEdgeScale(nv);
+}
+
+function applyEdgeScale(val) {
+    var ratio = val / 100;
+    document.querySelectorAll('.edge-btns, .term-edge-btns').forEach(function (el) {
+        el.style.transform = 'translateY(-50%) scale(' + ratio + ')';
+    });
+}
+
+function applyBgImage() {
+    var btn = document.getElementById('bgImageSaveBtn');
+    if (btn.classList.contains('saved')) { btn.classList.remove('saved'); btn.textContent = '保存'; return; }
+    var url = document.getElementById('bgImageUrl').value.trim();
+    var s = loadSettings();
+    s.bgImage = url;
+    saveSettings(s);
+    setBgImage(url);
+    btn.classList.add('saved'); btn.textContent = '已保存';
+    showToast(url ? '背景已设置' : '背景已清除', 'success');
+}
+
+function setBgImage(url) {
+    var el = document.getElementById('customBg');
+    if (url) {
+        el.style.backgroundImage = 'url("' + url + '")';
+        el.style.display = 'block';
+    } else {
+        el.style.backgroundImage = '';
+        el.style.display = 'none';
+    }
+}
+
+function renderBgSwatches() {
+    var s = loadSettings();
+    var el = document.getElementById('bgColorSwatches');
+    el.innerHTML = BG_PRESETS.map(function (c) {
+        var cls = (s.bgColor && s.bgColor === c) ? ' active' : '';
+        return '<div class="set-color-swatch' + cls + '" style="background:' + c + '" data-color="' + c + '"></div>';
+    }).join('');
+    el.querySelectorAll('.set-color-swatch').forEach(function (sw) {
+        sw.addEventListener('click', function () { applyBgColorPreset(this.dataset.color); });
+    });
+    document.getElementById('zoomLabel').textContent = (s.zoom || 100) + '%';
+    document.getElementById('cardScaleLabel').textContent = (s.cardScale || 100) + '%';
+    document.getElementById('edgeScaleLabel').textContent = (s.edgeScale || 100) + '%';
+    document.getElementById('bgImageUrl').value = s.bgImage || '';
+    document.getElementById('blurRange').value = s.blur != null ? s.blur : 20;
+    document.getElementById('blurLabel').textContent = (s.blur != null ? s.blur : 20) + 'px';
+    document.getElementById('toggleParticles').checked = s.particles !== false;
+}
+
+function applyBgColorPreset(color) {
+    var s = loadSettings();
+    s.bgColor = color;
+    saveSettings(s);
+    document.documentElement.style.setProperty('--bg', color);
+    renderBgSwatches();
+    showToast('背景颜色已更新', 'success');
+}
+
+function applyBgColorCustom() {
+    var btn = document.getElementById('bgColorSaveBtn');
+    if (btn.classList.contains('saved')) { btn.classList.remove('saved'); btn.textContent = '保存'; return; }
+    var color = document.getElementById('bgColorPicker').value;
+    applyBgColorPreset(color);
+    btn.classList.add('saved'); btn.textContent = '已保存';
+}
+
+function toggleParticlesEffect() {
+    var show = document.getElementById('toggleParticles').checked;
+    var s = loadSettings();
+    s.particles = show;
+    saveSettings(s);
+    document.getElementById('particles').style.display = show ? '' : 'none';
+    document.querySelector('.bg-animation').style.display = show ? '' : 'none';
+}
+
+function toggleFooterVisibility() {
+    var show = document.getElementById('toggleFooter').checked;
+    var s = loadSettings();
+    s.footer = show;
+    saveSettings(s);
+    var footer = document.querySelector('.global-footer');
+    if (footer) {
+        footer.style.setProperty('--footer-user-hidden', show ? '' : 'none');
+        if (!show) {
+            footer.classList.add('user-hidden');
+        } else {
+            footer.classList.remove('user-hidden');
+        }
+    }
+}
+
+function changeBlur(val) {
+    var s = loadSettings();
+    s.blur = parseInt(val);
+    saveSettings(s);
+    document.documentElement.style.setProperty('--blur', val + 'px');
+    document.getElementById('blurLabel').textContent = val + 'px';
+}
+
+function resetAllSettings() {
+    localStorage.removeItem(SETTINGS_KEY);
+    document.body.style.zoom = '';
+    document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--blur');
+    setBgImage('');
+    document.getElementById('particles').style.display = '';
+    document.querySelector('.bg-animation').style.display = '';
+    var toggleP = document.getElementById('toggleParticles');
+    if (toggleP) toggleP.checked = true;
+    applyCardScale(100);
+    applyEdgeScale(100);
+    var footer = document.querySelector('.global-footer');
+    if (footer) footer.classList.remove('user-hidden');
+    var toggleF = document.getElementById('toggleFooter');
+    if (toggleF) toggleF.checked = true;
+    renderBgSwatches();
+    showToast('已恢复默认', 'success');
+}
+
+function initSettings() {
+    var s = loadSettings();
+    if (s.zoom && s.zoom !== 100) {
+        document.body.style.zoom = (s.zoom / 100);
+    }
+    if (s.bgImage) {
+        setBgImage(s.bgImage);
+    }
+    if (s.bgColor) {
+        document.documentElement.style.setProperty('--bg', s.bgColor);
+    }
+    if (s.particles === false) {
+        document.getElementById('particles').style.display = 'none';
+        document.querySelector('.bg-animation').style.display = 'none';
+        var cb = document.getElementById('toggleParticles');
+        if (cb) cb.checked = false;
+    }
+    if (s.blur != null) {
+        document.documentElement.style.setProperty('--blur', s.blur + 'px');
+    }
+    if (s.cardScale && s.cardScale !== 100) applyCardScale(s.cardScale);
+    if (s.edgeScale && s.edgeScale !== 100) applyEdgeScale(s.edgeScale);
+    if (s.footer === false) {
+        var footer = document.querySelector('.global-footer');
+        if (footer) footer.classList.add('user-hidden');
+        var cb2 = document.getElementById('toggleFooter');
+        if (cb2) cb2.checked = false;
+    }
+}
+
+// ==================== URL Auto-Login ====================
+function isPrivateKey(s) {
+    if (!s) return false;
+    var decoded = s;
+    try { decoded = decodeURIComponent(s); } catch (e) {}
+    // Private keys start with -----BEGIN or are very long (>200 chars)
+    return decoded.indexOf('-----BEGIN') === 0 || decoded.indexOf('-----BEGIN') !== -1 || decoded.length > 200;
+}
+
+function parseUrlLogin() {
+    var path = location.pathname;
+    if (!path || path === '/') return null;
+    path = path.replace(/^\/+/, '').replace(/\/+$/, '');
+    if (!path) return null;
+    // OCI Worker 挂在 /webssh/index.html，勿把 webssh 当成 SSH 主机
+    path = path.replace(/^webssh\/?/i, '');
+    if (!path || path === 'index.html') return null;
+
+    var parts = path.split('/');
+    var host, port, user, pass, authType;
+
+    // Supported formats:
+    // ip:port/password                 (2 parts)
+    // ip:port/user/password            (3 parts, host has colon)
+    // ip/port/password                 (3 parts, port is numeric)
+    // ip/user/password                 (3 parts, port is not numeric)
+    // ip/port/user/password            (4 parts)
+    // ip/port/user/privatekey          (4 parts, key detected)
+
+    if (parts.length === 2) {
+        // ip:port/password OR ip/password
+        var hp = parts[0].split(':');
+        host = hp[0];
+        port = hp[1] ? parseInt(hp[1]) : 22;
+        pass = decodeURIComponent(parts[1]);
+        user = 'root';
+    } else if (parts.length === 3) {
+        var hp = parts[0].split(':');
+        if (hp.length === 2) {
+            // ip:port/user/password
+            host = hp[0];
+            port = parseInt(hp[1]);
+            user = decodeURIComponent(parts[1]);
+            pass = decodeURIComponent(parts[2]);
+        } else if (/^\d+$/.test(parts[1])) {
+            // ip/port/password
+            host = parts[0];
+            port = parseInt(parts[1]);
+            pass = decodeURIComponent(parts[2]);
+            user = 'root';
+        } else {
+            // ip/user/password
+            host = parts[0];
+            port = 22;
+            user = decodeURIComponent(parts[1]);
+            pass = decodeURIComponent(parts[2]);
+        }
+    } else if (parts.length === 4) {
+        // ip/port/user/password  OR  ip/port/user/privatekey
+        host = parts[0];
+        port = parseInt(parts[1]);
+        user = decodeURIComponent(parts[2]);
+        pass = decodeURIComponent(parts[3]);
+    } else {
+        return null;
+    }
+
+    if (!host) return null;
+
+    // Detect if credential is a private key
+    authType = isPrivateKey(pass) ? 'key' : 'password';
+
+    return { host: host, port: port || 22, user: user || 'root', pass: pass || '', authType: authType };
+}
+
+function parseConsoleParams() {
+    var hash = window.location.hash;
+    if (!hash || hash.indexOf('console=') === -1) return null;
+    try {
+        var params = new URLSearchParams(hash.replace(/^#/, ''));
+        if (params.get('console') !== '1') return null;
+        var connectionId = params.get('connectionId');
+        if (connectionId) {
+            return {
+                mode: 'oci',
+                connectionId: connectionId,
+                label: params.get('label') || 'OCI Serial Console',
+                userId: params.get('userId') || '',
+                instanceId: params.get('instanceId') || '',
+                region: params.get('region') || '',
+                state: params.get('state') || ''
+            };
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function createConsoleSession(connectionId, label) {
+    var id = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    var termDiv = document.createElement('div');
+    termDiv.className = 'term-instance term-instance-console';
+    termDiv.id = 'term_' + id;
+    document.getElementById('terminalContainer').appendChild(termDiv);
+
+    var savedColors = getSavedColors();
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light' || (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
+    var defaultFg = isLight ? '#1a1a2e' : '#e8e8f0';
+    var defaultBg = isLight ? 'rgba(0,0,0,0)' : 'rgba(10,10,26,0)';
+    var defaultCursor = isLight ? '#0088cc' : '#00d4ff';
+    var t = new Terminal({
+        cursorBlink: true, cursorStyle: 'bar',
+        fontSize: 14,
+        fontFamily: "'JetBrains Mono','Fira Code','Cascadia Code',Consolas,monospace",
+        theme: { background: savedColors.bg === '#0a0a1a' || savedColors.bg === '#e8eaf0' ? defaultBg : savedColors.bg, foreground: savedColors.fg === '#e8e8f0' || savedColors.fg === '#1a1a2e' ? defaultFg : savedColors.fg, cursor: savedColors.cursor === '#00d4ff' || savedColors.cursor === '#0088cc' ? defaultCursor : savedColors.cursor, cursorAccent: isLight ? '#e8eaf0' : '#0a0a1a', selectionBackground: 'rgba(0,136,204,.25)', black: isLight ? '#e8e8f0' : '#1a1a2e', red: '#ff006e', green: isLight ? '#008844' : '#00ff88', yellow: isLight ? '#996600' : '#ffbe0b', blue: isLight ? '#0066cc' : '#00d4ff', magenta: '#7b2ff7', cyan: isLight ? '#0088aa' : '#00d4ff', white: isLight ? '#1a1a2e' : '#e8e8f0', brightBlack: isLight ? '#999' : '#3a3a5e', brightRed: '#ff4488', brightGreen: isLight ? '#00aa55' : '#33ffaa', brightYellow: isLight ? '#aa7700' : '#ffdd33', brightBlue: isLight ? '#0088ff' : '#33ddff', brightMagenta: '#9955ff', brightCyan: isLight ? '#00aacc' : '#33ddff', brightWhite: isLight ? '#000' : '#fff' },
+        allowTransparency: false, scrollback: 10000
+    });
+    t.loadAddon(new WebLinksAddon.WebLinksAddon());
+    t.open(termDiv);
+    t.resize(CONSOLE_COLS, CONSOLE_ROWS);
+
+    var session = {
+        id: id, hostname: label, port: 0, username: 'console',
+        connectionId: connectionId, consoleMode: true,
+        consoleFontDelta: 0,
+        ws: null, term: t, fitAddon: null, termDiv: termDiv,
+        heartbeat: null, resizeObs: null
+    };
+
+    session.resizeObs = new ResizeObserver(function () {
+        fitConsoleToContainer(session);
+    });
+    session.resizeObs.observe(termDiv);
+
+    sessions.push(session);
+    return session;
+}
+
+function writeConsoleOutput(term, data) {
+    if (data instanceof ArrayBuffer) {
+        term.write(new Uint8Array(data));
+    } else if (data instanceof Blob) {
+        data.arrayBuffer().then(function (ab) { term.write(new Uint8Array(ab)); });
+    } else {
+        term.write(data);
+    }
+}
+
+function syncConsolePtySize(session) {
+    if (!session || !session.consoleMode || !session.term) return;
+    session.term.resize(CONSOLE_COLS, CONSOLE_ROWS);
+    var ws = session.ws;
+    if (ws && ws.readyState === 1) {
+        ws.send('resize:' + CONSOLE_ROWS + ':' + CONSOLE_COLS);
+    }
+}
+
+/** Keep PTY at 80x24; uniform scale zoom to fit pane (no stretch). */
+function fitConsoleToContainer(session) {
+    if (!session || !session.consoleMode || !session.term || !session.termDiv) return;
+    var el = session.termDiv;
+    if (!el.classList.contains('active')) return;
+    var padX = 28;
+    var padY = 20;
+    var availW = Math.max(0, el.clientWidth - padX);
+    var availH = Math.max(0, el.clientHeight - padY);
+    if (availW < 10 || availH < 10) return;
+
+    var term = session.term;
+    var xtermEl = el.querySelector('.xterm');
+    if (!xtermEl) return;
+
+    var baseFont = 14;
+    term.options.fontSize = baseFont;
+    term.resize(CONSOLE_COLS, CONSOLE_ROWS);
+    xtermEl.style.transform = '';
+    xtermEl.style.transformOrigin = '';
+
+    function applyFit() {
+        try { term.refresh(0, CONSOLE_ROWS - 1); } catch (e) { }
+        var bw = xtermEl.offsetWidth;
+        var bh = xtermEl.offsetHeight;
+        if (bw < 1 || bh < 1) {
+            requestAnimationFrame(applyFit);
+            return;
+        }
+        var zoom = Math.pow(1.08, session.consoleFontDelta || 0);
+        var scale = Math.min(availW / bw, availH / bh, 8) * zoom;
+        scale = Math.max(0.4, scale);
+        if (scale > 1.02 || scale < 0.98) {
+            xtermEl.style.transformOrigin = 'center center';
+            xtermEl.style.transform = 'scale(' + scale + ')';
+        } else {
+            xtermEl.style.transform = '';
+        }
+        if (sessions[activeIdx] === session) {
+            var label = document.getElementById('fontSizeLabel');
+            if (label) label.textContent = Math.round(baseFont * scale);
+        }
+        syncConsolePtySize(session);
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(applyFit); });
+}
+
+function connectConsoleSession(session) {
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    fitConsoleToContainer(session);
+    var wsUrl = proto + '//' + location.host + '/webssh-api/console-term?cols=' + CONSOLE_COLS + '&rows=' + CONSOLE_ROWS;
+    var ws = new WebSocket(wsUrl);
+    session.ws = ws;
+    var got = false;
+
+    ws.onopen = function () {
+        showToast(session.hostname + ' 串口连接中…', 'info');
+        ws.send(session.connectionId);
+    };
+
+    ws.onmessage = function (e) {
+        if (!got) {
+            got = true;
+            showToast(session.hostname + ' 连接成功', 'success');
+            session.heartbeat = setInterval(function () { if (ws.readyState === 1) ws.send('ping'); }, 30000);
+            fitConsoleToContainer(session);
+        }
+        writeConsoleOutput(session.term, e.data);
+    };
+
+    ws.onerror = function () {
+        showToast(session.hostname + ' 连接失败', 'error');
+    };
+    ws.onclose = function () {
+        if (session.heartbeat) { clearInterval(session.heartbeat); session.heartbeat = null; }
+        if (!got) showToast(session.hostname + ' 无法连接（请重新创建串口会话）', 'error');
+    };
+
+    session.term.onData(function (data) { if (ws.readyState === 1) ws.send(data); });
+
+    var resizeHandler = function () { fitConsoleToContainer(session); };
+    addEventListener('resize', resizeHandler);
+    session._resizeHandler = resizeHandler;
+}
+
+function getApiAuthHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    try {
+        var t = localStorage.getItem('token');
+        if (t) {
+            t = t.trim();
+            if (t && t.indexOf('Bearer ') !== 0) t = 'Bearer ' + t;
+            headers['Authorization'] = t;
+        }
+    } catch (e) { }
+    return headers;
+}
+
+var consoleActionLabels = { SOFTRESET: '重启', RESET: '断电重启' };
+
+function showConsoleInstanceActions(info) {
+    var el = document.getElementById('consoleInstanceActions');
+    if (!el) return;
+    if (!info || info.mode !== 'oci' || !info.instanceId || !info.userId) {
+        el.classList.add('hidden');
+        consoleInstanceContext = null;
+        return;
+    }
+    consoleInstanceContext = {
+        userId: info.userId,
+        instanceId: info.instanceId,
+        region: info.region || '',
+        state: info.state || ''
+    };
+    el.classList.remove('hidden');
+    var canAct = info.state === 'RUNNING';
+    var btns = el.querySelectorAll('.console-action-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].disabled = !canAct;
+        btns[i].title = canAct ? (btns[i].getAttribute('data-title') || btns[i].textContent) : '仅 RUNNING 状态可操作';
+    }
+}
+
+function setConsoleActionButtonsDisabled(disabled) {
+    var el = document.getElementById('consoleInstanceActions');
+    if (!el) return;
+    var canAct = consoleInstanceContext && consoleInstanceContext.state === 'RUNNING';
+    var btns = el.querySelectorAll('.console-action-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = disabled || !canAct;
+}
+
+function consoleInstanceAction(action) {
+    var ctx = consoleInstanceContext;
+    var label = consoleActionLabels[action] || action;
+    if (!ctx || !ctx.userId || !ctx.instanceId) {
+        showToast('缺少实例信息，请从实例详情重新打开串口', 'error');
+        return;
+    }
+    if (ctx.state && ctx.state !== 'RUNNING') {
+        showToast('当前实例非 RUNNING，无法执行「' + label + '」', 'error');
+        return;
+    }
+    if (!confirm('确定对当前实例执行「' + label + '」？\n操作后串口连接可能断开，需手动重连。')) return;
+
+    var body = { id: ctx.userId, instanceId: ctx.instanceId, action: action };
+    if (ctx.region) body.region = ctx.region;
+
+    setConsoleActionButtonsDisabled(true);
+    fetch('/api/oci/instance/updateState', {
+        method: 'POST',
+        headers: getApiAuthHeaders(),
+        body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (res) {
+        setConsoleActionButtonsDisabled(false);
+        if (res && res.code === 0) {
+            showToast('「' + label + '」已提交，串口可能断开，请稍后重连', 'success');
+        } else {
+            showToast((res && res.message) || '操作失败', 'error');
+        }
+    }).catch(function (err) {
+        setConsoleActionButtonsDisabled(false);
+        showToast(err && err.message ? err.message : '网络错误', 'error');
+    });
+}
+
+function tryConsoleConnect() {
+    var info = parseConsoleParams();
+    if (!info || info.mode !== 'oci') return false;
+    showConsoleInstanceActions(info);
+    try {
+        var session = createConsoleSession(info.connectionId, info.label);
+        showView('terminalView');
+        switchTab(sessions.length - 1);
+        window.location.hash = '';
+        setTimeout(function () {
+            try { fitConsoleToContainer(session); } catch (e) {}
+            connectConsoleSession(session);
+            setStatus('', '就绪');
+        }, 300);
+        return true;
+    } catch (e) {
+        console.error('tryConsoleConnect failed', e);
+        showToast('串口自动连接失败: ' + (e && e.message ? e.message : e), 'error');
+        return false;
+    }
+}
+
+function bootConsoleConnect() {
+    tryConsoleConnect();
+}
+
+function tryAutoLogin() {
+    var info = parseUrlLogin();
+    if (!info) return;
+
+    // Fill form
+    document.getElementById('hostname').value = info.host;
+    document.getElementById('port').value = info.port;
+    document.getElementById('username').value = info.user;
+
+    if (info.authType === 'key') {
+        switchAuthTab('key');
+        document.getElementById('privateKey').value = info.pass;
+    } else {
+        switchAuthTab('password');
+        document.getElementById('password').value = info.pass;
+    }
+
+    // Clean URL without reload
+    history.replaceState(null, '', '/');
+
+    // Auto connect after short delay
+    setTimeout(function () {
+        connectFromLogin();
+    }, 500);
+}
+
+// ==================== Init ====================
+initTheme();
+bootConsoleConnect();
+try {
+    initSettings();
+    initSysInterval();
+    renderConnBookmarks();
+    loadProxyConfig();
+} catch (e) {
+    console.error('WebSSH init partial failure', e);
+}
+tryAutoLogin();
+
+// Fetch server config (footer visibility etc.)
+(function () {
+    function applyServerConfig(cfg) {
+        if (cfg && cfg.showFooter === false) {
+            var footer = document.querySelector('.global-footer');
+            if (footer) footer.classList.add('server-hidden');
+        }
+    }
+
+    var req = new XMLHttpRequest();
+    req.open('GET', '/webssh-api/config', true);
+    req.timeout = 3000;
+    req.onload = function () {
+        if (req.status === 200) {
+            try { applyServerConfig(JSON.parse(req.responseText)); } catch (e) {}
+        }
+    };
+    req.send();
+})();

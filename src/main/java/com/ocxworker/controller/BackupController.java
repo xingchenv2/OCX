@@ -41,7 +41,7 @@ public class BackupController {
         this.verifyCodeService.verifyCode("backup", verifyCode);
         byte[] data = this.backupService.createBackup(password);
         response.setContentType("application/zip");
-        response.setHeader("Content-Disposition", "attachment; filename=oci-worker-backup.zip");
+        response.setHeader("Content-Disposition", "attachment; filename=ocx-worker-backup.zip");
         response.getOutputStream().write(data);
     }
 

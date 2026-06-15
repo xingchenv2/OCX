@@ -79,11 +79,11 @@ public class BackupService {
     public byte[] createBackup(String password) {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            Path tempDir = Files.createTempDirectory("oci-worker-backup-", new FileAttribute[0]);
-            Path sqlDumpFile = tempDir.resolve("oci-worker-dump.sql");
+            Path tempDir = Files.createTempDirectory("ocx-worker-backup-", new FileAttribute[0]);
+            Path sqlDumpFile = tempDir.resolve("ocx-worker-dump.sql");
             String sqlDump = this.exportDatabase();
             Files.writeString(sqlDumpFile, (CharSequence)sqlDump, new OpenOption[0]);
-            String zipPath = tempDir.resolve("oci-worker-backup-" + timestamp + ".zip").toString();
+            String zipPath = tempDir.resolve("ocx-worker-backup-" + timestamp + ".zip").toString();
             ZipParameters params = new ZipParameters();
             params.setCompressionLevel(CompressionLevel.NORMAL);
             params.setEncryptFiles(true);
@@ -109,13 +109,13 @@ public class BackupService {
     public void restoreBackup(byte[] data, String password) {
         try {
             Path keysSource;
-            Path tempDir = Files.createTempDirectory("oci-worker-restore-", new FileAttribute[0]);
+            Path tempDir = Files.createTempDirectory("ocx-worker-restore-", new FileAttribute[0]);
             Path tempFile = tempDir.resolve("restore.zip");
             Files.write(tempFile, data, new OpenOption[0]);
             try (ZipFile zipFile = new ZipFile(tempFile.toFile(), password.toCharArray());){
                 zipFile.extractAll(tempDir.toString());
             }
-            Path sqlDumpFile = tempDir.resolve("oci-worker-dump.sql");
+            Path sqlDumpFile = tempDir.resolve("ocx-worker-dump.sql");
             if (Files.exists(sqlDumpFile, new LinkOption[0])) {
                 String sql = Files.readString(sqlDumpFile);
                 this.importDatabase(sql.replace("\r\n", "\n").replace("\r", "\n"));

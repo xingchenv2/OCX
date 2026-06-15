@@ -128,7 +128,7 @@ public class OciProxyConfigService {
         }
         try {
             HttpClient client = OciProxyConfigService.newHttpClientForSnapshot((OciProxySnapshot)test);
-            HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/zen")).header("User-Agent", "oci-worker/1.0").timeout(Duration.ofSeconds(20L)).GET().build();
+            HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.github.com/zen")).header("User-Agent", "ocx-worker/1.0").timeout(Duration.ofSeconds(20L)).GET().build();
             long t0 = System.currentTimeMillis();
             HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() < 200 || resp.statusCode() >= 400) {

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ocxworker</groupId>
     <artifactId>ocx-worker</artifactId>
-    <version>1.0.0</version>
+    <version>0.1.1</version>
     <name>ocx-worker</name>
     <description>OCI Cloud Management Panel</description>
 

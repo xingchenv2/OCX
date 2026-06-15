@@ -475,13 +475,13 @@ implements Closeable {
     }
 
     public Vcn createVcn(String cidrBlock) {
-        CreateVcnResponse response = this.virtualNetworkClient.createVcn(CreateVcnRequest.builder().createVcnDetails(CreateVcnDetails.builder().compartmentId(this.compartmentId).displayName("oci-worker-vcn").cidrBlocks(List.of(cidrBlock)).build()).build());
+        CreateVcnResponse response = this.virtualNetworkClient.createVcn(CreateVcnRequest.builder().createVcnDetails(CreateVcnDetails.builder().compartmentId(this.compartmentId).displayName("ocx-worker-vcn").cidrBlocks(List.of(cidrBlock)).build()).build());
         log.info("Created VCN: {}", (Object)response.getVcn().getDisplayName());
         return response.getVcn();
     }
 
     public InternetGateway createInternetGateway(Vcn vcn) {
-        CreateInternetGatewayResponse response = this.virtualNetworkClient.createInternetGateway(CreateInternetGatewayRequest.builder().createInternetGatewayDetails(CreateInternetGatewayDetails.builder().compartmentId(this.compartmentId).vcnId(vcn.getId()).displayName("oci-worker-igw").isEnabled(Boolean.valueOf(true)).build()).build());
+        CreateInternetGatewayResponse response = this.virtualNetworkClient.createInternetGateway(CreateInternetGatewayRequest.builder().createInternetGatewayDetails(CreateInternetGatewayDetails.builder().compartmentId(this.compartmentId).vcnId(vcn.getId()).displayName("ocx-worker-igw").isEnabled(Boolean.valueOf(true)).build()).build());
         return response.getInternetGateway();
     }
 
@@ -494,7 +494,7 @@ implements Closeable {
 
     public Subnet createSubnet(String availabilityDomain, String cidrBlock, Vcn vcn) {
         try {
-            CreateSubnetResponse response = this.virtualNetworkClient.createSubnet(CreateSubnetRequest.builder().createSubnetDetails(CreateSubnetDetails.builder().compartmentId(this.compartmentId).vcnId(vcn.getId()).displayName("oci-worker-subnet").cidrBlock(cidrBlock).availabilityDomain(availabilityDomain).build()).build());
+            CreateSubnetResponse response = this.virtualNetworkClient.createSubnet(CreateSubnetRequest.builder().createSubnetDetails(CreateSubnetDetails.builder().compartmentId(this.compartmentId).vcnId(vcn.getId()).displayName("ocx-worker-subnet").cidrBlock(cidrBlock).availabilityDomain(availabilityDomain).build()).build());
             return response.getSubnet();
         }
         catch (Exception e) {
@@ -851,12 +851,12 @@ implements Closeable {
         int target = this.user.getCreateNumbers() != null && this.user.getCreateNumbers() > 0 ? this.user.getCreateNumbers() : 1;
         int n = ord = this.user.getInstanceDisplayOrdinal() != null && this.user.getInstanceDisplayOrdinal() > 0 ? this.user.getInstanceDisplayOrdinal() : 1;
         if (target == 1) {
-            return "oci-worker-instance";
+            return "ocx-worker-instance";
         }
         if (target <= 4) {
             int o = Math.min(Math.max(ord, 1), target);
             char letter = (char)(65 + o - 1);
-            return "oci-worker-" + letter;
+            return "ocx-worker-" + letter;
         }
         return "oci-instance-" + ord;
     }
@@ -950,7 +950,7 @@ implements Closeable {
         if (OciClientService.hasIpv4AllIngress(ingressRules)) {
             return;
         }
-        ingressRules.add(IngressSecurityRule.builder().source("0.0.0.0/0").protocol("all").description("oci-worker auto IPv4 ingress").build());
+        ingressRules.add(IngressSecurityRule.builder().source("0.0.0.0/0").protocol("all").description("ocx-worker auto IPv4 ingress").build());
         this.virtualNetworkClient.updateSecurityList(UpdateSecurityListRequest.builder().securityListId(secListId).updateSecurityListDetails(UpdateSecurityListDetails.builder().ingressSecurityRules(ingressRules).egressSecurityRules(secList.getEgressSecurityRules()).build()).build());
         log.info("\u5b50\u7f51 {} \u5b89\u5168\u5217\u8868\u5df2\u8865 IPv4 0.0.0.0/0 \u5168\u534f\u8bae\u5165\u7ad9", (Object)subnetId);
     }
@@ -974,11 +974,11 @@ implements Closeable {
         List egressRules = OciClientService.dedupeIpv6AllEgress(new ArrayList(secList.getEgressSecurityRules() != null ? secList.getEgressSecurityRules() : List.of()));
         boolean bl = changed = ingressRules.size() != ingressBefore || egressRules.size() != egressBefore;
         if (!OciClientService.hasIpv6AllIngress((List)ingressRules)) {
-            ingressRules.add(IngressSecurityRule.builder().source("::/0").sourceType(IngressSecurityRule.SourceType.CidrBlock).protocol("all").description("oci-worker auto IPv6 ingress").build());
+            ingressRules.add(IngressSecurityRule.builder().source("::/0").sourceType(IngressSecurityRule.SourceType.CidrBlock).protocol("all").description("ocx-worker auto IPv6 ingress").build());
             changed = true;
         }
         if (!OciClientService.hasIpv6AllEgress((List)egressRules)) {
-            egressRules.add(EgressSecurityRule.builder().destination("::/0").destinationType(EgressSecurityRule.DestinationType.CidrBlock).protocol("all").description("oci-worker auto IPv6 egress").build());
+            egressRules.add(EgressSecurityRule.builder().destination("::/0").destinationType(EgressSecurityRule.DestinationType.CidrBlock).protocol("all").description("ocx-worker auto IPv6 egress").build());
             changed = true;
         }
         if (!changed) {
@@ -1053,7 +1053,7 @@ implements Closeable {
             rules.addAll(routeTable.getRouteRules());
         }
         if (!(hasIpv6DefaultRoute = rules.stream().anyMatch(rule -> "::/0".equals(rule.getDestination()) && RouteRule.DestinationType.CidrBlock.equals((Object)rule.getDestinationType())))) {
-            rules.add(RouteRule.builder().destination("::/0").destinationType(RouteRule.DestinationType.CidrBlock).networkEntityId(igw.getId()).description("oci-worker auto add IPv6 default route").build());
+            rules.add(RouteRule.builder().destination("::/0").destinationType(RouteRule.DestinationType.CidrBlock).networkEntityId(igw.getId()).description("ocx-worker auto add IPv6 default route").build());
             this.virtualNetworkClient.updateRouteTable(UpdateRouteTableRequest.builder().rtId(routeTableId).updateRouteTableDetails(UpdateRouteTableDetails.builder().routeRules(rules).build()).build());
         }
     }

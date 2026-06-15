@@ -634,7 +634,7 @@ public class InstanceService {
             rules.addAll(routeTable.getRouteRules());
         }
         if (!(hasIpv6DefaultRoute = rules.stream().anyMatch(rule -> "::/0".equals(rule.getDestination()) && RouteRule.DestinationType.CidrBlock.equals((Object)rule.getDestinationType())))) {
-            rules.add(RouteRule.builder().destination("::/0").destinationType(RouteRule.DestinationType.CidrBlock).networkEntityId(igw.getId()).description("oci-worker auto add IPv6 default route").build());
+            rules.add(RouteRule.builder().destination("::/0").destinationType(RouteRule.DestinationType.CidrBlock).networkEntityId(igw.getId()).description("ocx-worker auto add IPv6 default route").build());
             client.getVirtualNetworkClient().updateRouteTable(UpdateRouteTableRequest.builder().rtId(routeTableId).updateRouteTableDetails(UpdateRouteTableDetails.builder().routeRules(rules).build()).build());
             log.info("Added IPv6 default route (::/0 -> IGW) to route table {}", (Object)routeTableId);
         }

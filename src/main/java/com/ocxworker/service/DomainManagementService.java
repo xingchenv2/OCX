@@ -377,7 +377,7 @@ public class DomainManagementService {
                 ArrayList<Operations> ops = new ArrayList<Operations>();
                 ops.add(Operations.builder().op(Operations.Op.Replace).path("active").value((Object)enabled).build());
                 ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:consent").value((Object)true).build());
-                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:justification").value((Object)(enabled ? "MFA enabled via oci-worker" : "MFA disabled via oci-worker")).build());
+                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:justification").value((Object)(enabled ? "MFA enabled via ocx-worker" : "MFA disabled via ocx-worker")).build());
                 PatchOp patch = PatchOp.builder().schemas(List.of("urn:ietf:params:scim:api:messages:2.0:PatchOp")).operations(ops).build();
                 dc.patchPolicy(PatchPolicyRequest.builder().policyId("OciConsolePolicy").patchOp(patch).build());
                 log.info("OciConsolePolicy active={} for tenant={} domain={}", new Object[]{enabled, tenantId, target.get("displayName")});
