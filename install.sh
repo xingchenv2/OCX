@@ -700,8 +700,8 @@ prompt_db_docker() {
 
     if docker ps -a --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
         warn "已存在容器 ocx-worker-mysql"
-        if [ "$(ask_yes_no "重新创建？（会保留 /opt/ocx-worker/data/mysql 数据目录）" "N")" = "y" ]; then
-            docker rm -f ocx-worker-mysql >/dev/null
+        if [ "$(ask_yes_no "重新创建？（会保留 /opt/ocx-worker/data/mysql 数据目录）" "Y")" = "y" ]; then
+            docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
         else
             info "复用已有容器，请输入首次创建该容器时设置的密码"
         fi
@@ -710,35 +710,36 @@ prompt_db_docker() {
     # Loop: try reuse or (re)create container
     while true; do
     if docker ps -a --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
+        # --- Reuse existing container ---
         if ! docker ps --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
             info "启动已有容器 ocx-worker-mysql..."
-            docker start ocx-worker-mysql >/dev/null || die "启动容器失败：docker start ocx-worker-mysql"
-            if ! wait_docker_mysql_user; then
-                err "MySQL 启动超时或密码错误，请查看：docker logs ocx-worker-mysql"
-                if [ "$(ask_yes_no "是否重新创建容器？（旧数据保留在 /opt/ocx-worker/data/mysql，新容器会复用它）" "N")" = "y" ]; then
-                    docker rm -f ocx-worker-mysql >/dev/null
-                    continue
-                fi
-                if [ "$(ask_yes_no "重新输入密码再试？" "Y")" = "y" ]; then
-                    DB_USER="$(ask "用户名" "${DB_USER}")"
-                    DB_PASS="$(ask_password "密码（首次创建时的密码）")"
-                    continue
-                fi
-                die "数据库配置未完成，已退出安装"
-            fi
+            docker start ocx-worker-mysql >/dev/null 2>/dev/null || true
+            sleep 2
         fi
+        # Wait for MySQL to be ready (up to 60s)
+        if ! wait_docker_mysql_user; then
+            err "MySQL 启动超时或密码错误"
+            if [ "$(ask_yes_no "是否清空数据并重新创建容器？" "Y")" = "y" ]; then
+                docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
+                rm -rf /opt/ocx-worker/data/mysql/*
+                continue
+            fi
+            die "数据库配置未完成，已退出安装"
+        fi
+        # Verify credentials
         if verify_docker_mysql_credentials; then
             return 0
         fi
-        # Credentials wrong or connection failed
+        # Credentials wrong
         err "无法用当前用户名/密码连接容器内 MySQL（密码须与容器初始化时一致）"
         if [ "$(ask_yes_no "重新输入密码再试？" "Y")" = "y" ]; then
             DB_USER="$(ask "用户名" "${DB_USER}")"
             DB_PASS="$(ask_password "密码（首次创建时的密码）")"
             continue
         fi
-        if [ "$(ask_yes_no "是否重新创建容器？（旧数据保留在 /opt/ocx-worker/data/mysql，新容器会复用它）" "N")" = "y" ]; then
-            docker rm -f ocx-worker-mysql >/dev/null
+        if [ "$(ask_yes_no "是否清空数据并重新创建容器？" "Y")" = "y" ]; then
+            docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
+            rm -rf /opt/ocx-worker/data/mysql/*
             continue
         fi
         die "数据库配置未完成，已退出安装"
