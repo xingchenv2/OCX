@@ -11,7 +11,7 @@
 #   * Atomic config writes with .bak rollback if the new config breaks startup.
 #
 # This script is INDEPENDENT of the original deploy.sh / update.sh.
-# It does NOT modify anything outside /opt/oci-worker, /etc/systemd/system,
+# It does NOT modify anything outside /opt/ocx-worker, /etc/systemd/system,
 # /usr/local/bin/ocx.
 #
 # Run as root:
@@ -23,13 +23,13 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Constants (DO NOT change unless backend code changes accordingly)
 # -----------------------------------------------------------------------------
-readonly INSTALL_DIR="/opt/oci-worker"
+readonly INSTALL_DIR="/opt/ocx-worker"
 readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
-readonly JAR_NAME="oci-worker.jar"
-readonly JAR_ASSET="oci-worker-1.0.0.jar"
+readonly JAR_NAME="ocx-worker.jar"
+readonly JAR_ASSET="ocx-worker-1.0.0.jar"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
-readonly SERVICE_NAME="oci-worker"
+readonly SERVICE_NAME="ocx-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_BIN="${INSTALL_DIR}/oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE="oci-webssh"
@@ -40,7 +40,7 @@ readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 
 readonly OCX_BIN="/usr/local/bin/ocx"
-readonly TMP_DIR="$(mktemp -d -t oci-worker-installer.XXXXXX)"
+readonly TMP_DIR="$(mktemp -d -t ocx-worker-installer.XXXXXX)"
 
 # JDK 21 (Adoptium Temurin)
 readonly JDK_VERSION="21.0.7+6"
@@ -262,7 +262,7 @@ install_jdk21() {
 DB_HOST=""; DB_PORT=""; DB_NAME=""; DB_USER=""; DB_PASS=""
 
 docker_mysql_container_up() {
-    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "oci-worker-mysql"
+    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "ocx-worker-mysql"
 }
 
 # Write a temporary mysql defaults-file so MYSQL_PWD is not visible in /proc.
@@ -283,16 +283,16 @@ _mysql_cnf_cleanup() {
     rm -f "${TMP_DIR}/.mysql_cnf/"*.cnf 2>/dev/null || true
 }
 
-# Run mysql inside oci-worker-mysql (avoids host MariaDB client vs MySQL 8 quirks on Debian 13+).
+# 在 ocx-worker-mysql 内部运行 mysql (避免主机 MariaDB 客户端与 Debian 13+ 上的 MySQL 8 存在兼容性问题)。
 mysql_docker_run() {
     local user="$1" pass="$2" db="$3" sql="$4"
     local args=(-u"${user}" -N -B --connect-timeout=5)
     [ -n "${db}" ] && args+=("${db}")
-    local cnf="$(docker exec -i oci-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf && echo /tmp/.m.cnf' <<<"[client]\npassword=${pass}")"
+    local cnf="$(docker exec -i ocx-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf && echo /tmp/.m.cnf' <<<"[client]\npassword=${pass}")"
     local out errf err=""
     errf="$(mktemp)"
-    out="$(docker exec oci-worker-mysql mysql --defaults-file=/tmp/.m.cnf "${args[@]}" -e "${sql}" 2>"${errf}" || true)"
-    docker exec oci-worker-mysql rm -f /tmp/.m.cnf 2>/dev/null || true
+    out="$(docker exec ocx-worker-mysql mysql --defaults-file=/tmp/.m.cnf "${args[@]}" -e "${sql}" 2>"${errf}" || true)"
+    docker exec ocx-worker-mysql rm -f /tmp/.m.cnf 2>/dev/null || true
     if [ -s "${errf}" ]; then
         err="$(tr '\n' ' ' < "${errf}" | sed 's/  */ /g')"
     fi
@@ -314,7 +314,7 @@ mysql_output_is_one() {
 }
 
 docker_mysql_logs_final_ready() {
-    docker logs oci-worker-mysql 2>&1 | grep -qE 'ready for connections.*port: 3306'
+    docker logs ocx-worker-mysql 2>&1 | grep -qE 'ready for connections.*port: 3306'
 }
 
 # Host mysql: keep stderr separate so MariaDB client WARNING lines do not break parsing.
@@ -755,7 +755,7 @@ prompt_db_docker() {
     fi
 
     info "启动 MySQL 8.0 容器..."
-    mkdir -p /opt/oci-worker/data/mysql
+    mkdir -p /opt/ocx-worker/data/mysql
     # NOTE: MySQL Docker image does NOT support _FILE env var suffixes like Postgres does.
     # We still need to pass passwords via -e, but we mitigate the exposure:
     #   1. The container is bound to 127.0.0.1 only (no external access)
@@ -763,10 +763,10 @@ prompt_db_docker() {
     #   3. /proc/PID/environ requires root on the host to read
     # For production, use Docker Swarm secrets or external secret management.
     docker run -d \
-        --name oci-worker-mysql \
+        --name ocx-worker-mysql \
         --restart always \
         -p 127.0.0.1:3306:3306 \
-        -v /opt/oci-worker/data/mysql:/var/lib/mysql \
+        -v /opt/ocx-worker/data/mysql:/var/lib/mysql \
         -e MYSQL_ROOT_PASSWORD="${root_pass}" \
         -e MYSQL_DATABASE="${DB_NAME}" \
         -e MYSQL_USER="${DB_USER}" \
@@ -777,8 +777,8 @@ prompt_db_docker() {
         --collation-server=utf8mb4_unicode_ci >/dev/null \
         || die "MySQL 容器启动失败"
     # Clean up secrets dir (don't leave password files on disk)
-    rm -rf /opt/oci-worker/data/mysql-secrets
-    wait_docker_mysql_user || die "MySQL 启动超时，请查看：docker logs oci-worker-mysql"
+    rm -rf /opt/ocx-worker/data/mysql-secrets
+    wait_docker_mysql_user || die "MySQL 启动超时，请查看：docker logs ocx-worker-mysql"
     verify_docker_mysql_credentials
 }
 
@@ -1125,7 +1125,7 @@ cleanup_legacy_webssh() {
     systemctl daemon-reload 2>/dev/null || true
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "webssh"; then
         docker stop webssh >/dev/null 2>&1 || true
-        (cd /opt/oci-worker/webssh 2>/dev/null && docker compose down >/dev/null 2>&1) || true
+        (cd /opt/ocx-worker/webssh 2>/dev/null && docker compose down >/dev/null 2>&1) || true
     fi
 }
 
