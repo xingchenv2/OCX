@@ -288,7 +288,8 @@ mysql_docker_run() {
     local user="$1" pass="$2" db="$3" sql="$4"
     local args=(-u"${user}" -N -B --connect-timeout=5)
     [ -n "${db}" ] && args+=("${db}")
-    local cnf="$(docker exec -i ocx-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf && echo /tmp/.m.cnf' <<<"[client]\npassword=${pass}")"
+    # 写入 MySQL 配置文件（必须用真正的父子换行，不能用 \n 字面量）
+    printf '[client]\npassword=%s\n' "${pass}" | docker exec -i ocx-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf'
     local out errf err=""
     errf="$(mktemp)"
     out="$(docker exec ocx-worker-mysql mysql --defaults-file=/tmp/.m.cnf "${args[@]}" -e "${sql}" 2>"${errf}" || true)"
