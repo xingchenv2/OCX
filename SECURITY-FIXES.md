@@ -107,7 +107,7 @@ original codebase and the fixes applied in this repository.
 ### #18 systemd Service Runs as Root
 - **File**: `ocx` — service unit
 - **Risk**: Java backend runs as root — any RCE = full system compromise.
-- **Fix**: Service unit now includes `User=ociworker`, `Group=ociworker`, `NoNewPrivileges=true`, `ProtectSystem=strict`, `PrivateTmp=true`.
+- **Fix**: Service unit now includes `User=ocxworker`, `Group=ocxworker`, `NoNewPrivileges=true`, `ProtectSystem=strict`, `PrivateTmp=true`.
 
 ### #19 Docker MySQL Port Binding
 - **File**: `install.sh`
@@ -133,7 +133,7 @@ original codebase and the fixes applied in this repository.
 | YAML atomic | ocx | `os.replace()` instead of direct write |
 | Restore order | ocx | DB first, then config/keys |
 | KEYS_DIR perms | ocx | `chmod 700` on keys dir, `chmod 600` on key files |
-| systemd user | ocx | `User=ociworker` + hardening directives |
+| systemd user | ocx | `User=ocxworker` + hardening directives |
 
 ---
 

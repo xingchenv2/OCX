@@ -88,7 +88,7 @@ v2 安装器会：
 |------|------|
 | 清除 TG 绑定 | **`sudo ocx tg-clean`** 或菜单 **11）清除Tg绑定**（自动 `docker exec oci-worker-mysql`，密码来自 yml） |
 | 查库里的 TG 配置 | 优先用 `ocx tg-clean` 前的列表；勿猜密码，以 yml 里 `spring.datasource.password` 为准 |
-| 备份数据库 | 建议 `apt install -y default-mysql-client` 后 `ociworker backup`，或自行 `docker exec oci-worker-mysql mysql …` |
+| 备份数据库 | 建议 `apt install -y default-mysql-client` 后 `ocxworker backup`，或自行 `docker exec oci-worker-mysql mysql …` |
 
 清除后提示：**telegram通知已清除，请登录面板重新绑定。**
 
@@ -120,7 +120,7 @@ ocx uninstall        # 卸载（每步都问，给后悔药）
 | `/opt/oci-worker/application.yml`        | 配置文件（权限 600）          |
 | `/opt/oci-worker/application.yml.bak.*`  | 自动备份历史                  |
 | `/opt/oci-worker/keys/`                  | OCI PEM 密钥                  |
-| `/opt/oci-worker/backups/`               | `ociworker backup` 输出目录   |
+| `/opt/oci-worker/backups/`               | `ocxworker backup` 输出目录   |
 | `/etc/systemd/system/oci-worker.service` | 主程序 systemd                |
 | `/usr/local/bin/ocx`               | 管理脚本                      |
 | `/usr/local/bin/java`                    | JDK 21 软链                   |
@@ -179,7 +179,7 @@ A: 不会。升级模式只换 JAR，**完全不动 application.yml 和数据库
 A: 可以。新版 JAR 推到 `latest` Release 后，`ocx update` 或重跑 `install.sh` 都会拉最新版本。
 
 **Q: 改坏了 application.yml 怎么办？**  
-A: `ociworker config` 修改时会自动备份并在启动失败时回滚。手动改的话可以从 `/opt/oci-worker/application.yml.bak.*` 找历史版本。
+A: `ocxworker config` 修改时会自动备份并在启动失败时回滚。手动改的话可以从 `/opt/oci-worker/application.yml.bak.*` 找历史版本。
 
 **Q: 为什么不在脚本里设置管理员账号密码？**  
 A: 后端 `AuthController` 判断"是否首次安装"只看数据库 `oci_kv` 表里有没有 `web_account / web_password` 两条记录，**不读** `application.yml` 里的 `web.account / web.password`。yml 里的两个字段只在数据库被清空、用户尚未在浏览器完成 Setup 时作为兜底默认值。所以脚本里设置的账号密码不会生效，反而误导用户，我们干脆去掉这一步。后端这样设计是因为数据库里能存 sha256 哈希，比 yml 明文更安全。
