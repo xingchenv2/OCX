@@ -46,7 +46,7 @@
 复制粘贴执行即可（Debian / Ubuntu / CentOS 通用）：
 
 ```bash
-curl -fsSL https://github.com/OCIworker/OCIworker/releases/download/installer-latest/install.sh -o /tmp/install.sh
+curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh
 sudo bash /tmp/install.sh
 ```
 
@@ -98,7 +98,7 @@ sudo ociworker tg-clean
 脚本读 `/opt/oci-worker/application.yml` 的账号密码，在 **`oci-worker-mysql` 容器**里删 `oci_kv` 的 `tg_%` 项（与面板同一库）。更新脚本：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OCIworker/OCIworker/main/ociworker -o /usr/local/bin/ociworker
+sudo curl -fsSL https://raw.githubusercontent.com/xingchenv2/OCX/main/ociworker -o /usr/local/bin/ociworker
 sudo chmod +x /usr/local/bin/ociworker
 ```
 
@@ -189,7 +189,7 @@ FLUSH PRIVILEGES;
 
 ## 目录结构
 
-本仓库为**安装与发布**用途，不含应用源码。JAR 见 [Releases `latest`](https://github.com/OCIworker/OCIworker/releases/tag/latest)。
+本仓库为**安装与发布**用途，不含应用源码。JAR 见 [Releases `latest`](https://github.com/xingchenv2/OCX/releases/tag/latest)。
 
 ```
 /opt/oci-worker/          # 生产部署目录

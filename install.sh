@@ -15,7 +15,7 @@
 # /usr/local/bin/ociworker.
 #
 # Run as root:
-#   bash <(curl -fsSL https://github.com/OCIworker/OCIworker/releases/download/installer-latest/install.sh)
+#   bash <(curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh)
 # =============================================================================
 
 set -euo pipefail
@@ -34,7 +34,7 @@ readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_BIN="${INSTALL_DIR}/oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE="oci-webssh"
 
-readonly REPO="OCIworker/OCIworker"
+readonly REPO="xingchenv2/OCX"
 readonly JAR_RELEASE_TAG="latest"
 readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"

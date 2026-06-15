@@ -32,7 +32,7 @@ readonly SERVICE_NAME="oci-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_SERVICE_NAME="oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE_FILE="/etc/systemd/system/${LEGACY_WEBSSH_SERVICE_NAME}.service"
-readonly REPO="OCIworker/OCIworker"
+readonly REPO="xingchenv2/OCX"
 readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 # install.sh 默认 Docker MySQL 容器名；tg-clean 在本机无 mysql 客户端时可经此容器连库

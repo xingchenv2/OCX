@@ -17,8 +17,8 @@
 
 ## 发布产物
 
-- 应用 JAR：**[`latest`](https://github.com/OCIworker/OCIworker/releases/tag/latest)** Release
-- 安装器与 CLI：**[`installer-latest`](https://github.com/OCIworker/OCIworker/releases/tag/installer-latest)** Release（`install.sh`、`ociworker`）
+- 应用 JAR：**[`latest`](https://github.com/xingchenv2/OCX/releases/tag/latest)** Release
+- 安装器与 CLI：**[`installer-latest`](https://github.com/xingchenv2/OCX/releases/tag/installer-latest)** Release（`install.sh`、`ociworker`）
 - systemd 服务名均为 `oci-worker`，与历史手动部署路径兼容；若目录 `/opt/oci-worker` 已存在，`install.sh` 会识别为升级模式
 
 ## 安装
@@ -26,14 +26,14 @@
 > Debian 默认 root shell 是 dash，不支持 `<()` 进程替换。**推荐先下载再执行**：
 
 ```bash
-curl -fsSL https://github.com/OCIworker/OCIworker/releases/download/installer-latest/install.sh -o /tmp/install.sh
+curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh
 bash /tmp/install.sh
 ```
 
 或者管道执行（Ubuntu / CentOS 等 root 是 bash 的也可以用 `bash <(curl ...)`）：
 
 ```bash
-curl -fsSL https://github.com/OCIworker/OCIworker/releases/download/installer-latest/install.sh | bash
+curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh | bash
 ```
 
 向导会问：
@@ -149,7 +149,7 @@ ociworker uninstall        # 卸载（每步都问，给后悔药）
    ```bash
    GH_TOKEN=ghp_xxx
    curl -fsSL -H "Authorization: token ${GH_TOKEN}" \
-     https://api.github.com/repos/OCIworker/OCIworker/releases/tags/installer-latest \
+     https://api.github.com/repos/xingchenv2/OCX/releases/tags/installer-latest \
      | grep browser_download_url | grep install.sh | cut -d'"' -f4 \
      | xargs curl -fsSL -H "Authorization: token ${GH_TOKEN}" -o install.sh
    bash install.sh
