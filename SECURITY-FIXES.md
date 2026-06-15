@@ -1,8 +1,7 @@
 # OCI Worker — Security Vulnerability Fixes
 
 This document describes all security vulnerabilities identified in the
-[OCIworker/OCIworker](https://github.com/OCIworker/OCIworker) codebase and the
-fixes applied in this repository.
+original codebase and the fixes applied in this repository.
 
 > **Audited**: 2025-06-15  
 > **Auditor**: 星辰助手 (AI security review)  
