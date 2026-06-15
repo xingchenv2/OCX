@@ -4,11 +4,11 @@
 # -----------------------------------------------------------------------------
 # Usage:
 #   ocx                      Interactive menu
-#   ocx status           Show status of oci-worker
+#   ocx status           Show status of ocx-worker
 #   ocx start            Start services
 #   ocx stop             Stop services
-#   ocx restart          Restart oci-worker
-#   ocx logs             Tail oci-worker logs
+#   ocx restart          Restart ocx-worker
+#   ocx logs             Tail ocx-worker logs
 #   ocx config           Modify port / database (rollback on failure)
 #   ocx update           Run install.sh in upgrade mode
 #   ocx backup           Backup db dump + application.yml + keys
@@ -18,17 +18,17 @@
 #   ocx version          Show installer version + jar info
 #
 # This script never modifies the database schema and never edits files outside
-# /opt/oci-worker, /etc/systemd/system/oci-worker*.service.
+# /opt/ocx-worker, /etc/systemd/system/ocx-worker*.service.
 # =============================================================================
 
 set -euo pipefail
 
-readonly INSTALL_DIR="/opt/oci-worker"
+readonly INSTALL_DIR="/opt/ocx-worker"
 readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
-readonly JAR_NAME="oci-worker.jar"
-readonly SERVICE_NAME="oci-worker"
+readonly JAR_NAME="ocx-worker.jar"
+readonly SERVICE_NAME="ocx-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_SERVICE_NAME="oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE_FILE="/etc/systemd/system/${LEGACY_WEBSSH_SERVICE_NAME}.service"
@@ -36,7 +36,7 @@ readonly REPO="xingchenv2/OCX"
 readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 # install.sh 默认 Docker MySQL 容器名；tg-clean 在本机无 mysql 客户端时可经此容器连库
-readonly OCI_MYSQL_CONTAINER="${OCI_MYSQL_CONTAINER:-oci-worker-mysql}"
+readonly OCI_MYSQL_CONTAINER="${OCI_MYSQL_CONTAINER:-ocx-worker-mysql}"
 
 # -----------------------------------------------------------------------------
 # Colors / output
@@ -155,11 +155,7 @@ _mysql_try_docker() {
     _mysql_docker_available || return 1
     local errf; errf="$(mktemp)"
     # Write cnf inside container to avoid env exposure
-    if docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c "cat > /tmp/.m.cnf <<CNFEOF
-[client]
-password=${_MYSQL_PASS}
-CNFEOF
-chmod 600 /tmp/.m.cnf" 2>/dev/null && \
+    if printf '[client]\npassword=%s\n' "${_MYSQL_PASS}" | docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf' 2>/dev/null && \
        docker exec -i "${OCI_MYSQL_CONTAINER}" mysql --defaults-file=/tmp/.m.cnf -u"${_MYSQL_USER}" "${_MYSQL_DB}" -N -e "SELECT 1" 2>"${errf}" >/dev/null; then
         docker exec "${OCI_MYSQL_CONTAINER}" rm -f /tmp/.m.cnf 2>/dev/null || true
         rm -f "${errf}"
@@ -203,7 +199,7 @@ _mysql_invoke() {
     [ "${numeric}" = "1" ] && extra=(-N)
     if [ "${_MYSQL_MODE}" = docker ]; then
         # Use .cnf file inside container to avoid env var exposure
-        docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c 'cat > /tmp/.m.cnf <<CNFEOF\n[client]\npassword=${_MYSQL_PASS}\nCNFEOF\nchmod 600 /tmp/.m.cnf' 2>/dev/null || true
+        printf '[client]\npassword=%s\n' "${_MYSQL_PASS}" | docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf' 2>/dev/null || true
         if ! docker exec -i "${OCI_MYSQL_CONTAINER}" mysql --defaults-file=/tmp/.m.cnf -u"${_MYSQL_USER}" "${_MYSQL_DB}" "${extra[@]}" -e "${sql}" 2>"${errf}"; then
             docker exec "${OCI_MYSQL_CONTAINER}" rm -f /tmp/.m.cnf 2>/dev/null || true
             err "经 Docker ${OCI_MYSQL_CONTAINER} 执行 SQL 失败"
@@ -237,7 +233,7 @@ _mysql_scalar() {
     _mysql_ensure_mode
     errf="$(mktemp)"
     if [ "${_MYSQL_MODE}" = docker ]; then
-        docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c "cat > /tmp/.m.cnf <<CNFEOF\n[client]\npassword=${_MYSQL_PASS}\nCNFEOF\nchmod 600 /tmp/.m.cnf" 2>/dev/null || true
+        printf '[client]\npassword=%s\n' "${_MYSQL_PASS}" | docker exec -i "${OCI_MYSQL_CONTAINER}" sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf' 2>/dev/null || true
         out="$(docker exec -i "${OCI_MYSQL_CONTAINER}" mysql --defaults-file=/tmp/.m.cnf \
             -u"${_MYSQL_USER}" "${_MYSQL_DB}" -N -e "${sql}" 2>"${errf}")" || {
             docker exec "${OCI_MYSQL_CONTAINER}" rm -f /tmp/.m.cnf 2>/dev/null || true
@@ -448,7 +444,7 @@ cmd_config() {
     echo
     echo "[规则] 每次修改会自动重启服务验证新配置。"
     echo "       启动失败会自动回滚到上一份 application.yml，无需手动停服。"
-    echo "       手动备份历史保存在 /opt/oci-worker/application.yml.bak.*"
+    echo "       手动备份历史保存在 /opt/ocx-worker/application.yml.bak.*"
     echo
     echo "[提示] 管理员账号/密码请在 Web 界面里修改（设置 -> 安全）。"
     echo
@@ -479,7 +475,7 @@ _change_database() {
     section "数据库修改 / 迁移"
     cat <<EOF
 [i] 把数据库地址、端口、库名、用户名、密码作为一个整体替换。
-    会一次性写入 application.yml 然后重启 oci-worker 验证。
+    会一次性写入 application.yml 然后重启 ocx-worker 验证。
     启动失败会自动回滚到上一份配置。
 
 [!] 如果是把数据迁移到新库（比如换到面板自带的 MySQL）：
@@ -610,7 +606,7 @@ cmd_backup() {
     require_installed
     mkdir -p "${BACKUP_DIR}"
     local ts; ts="$(date +%Y%m%d-%H%M%S)"
-    local out="${BACKUP_DIR}/oci-worker-backup-${ts}.tar.gz"
+    local out="${BACKUP_DIR}/ocx-worker-backup-${ts}.tar.gz"
     local stage; stage="$(mktemp -d)"
     trap "rm -rf '${stage}'" RETURN
 
@@ -724,8 +720,8 @@ cmd_restore() {
             ok "数据库已恢复"
         else
             warn "数据库恢复失败，请手动查看 db.sql"
-            cp "${stage}/db.sql" "/tmp/oci-worker-restore-db.sql"
-            warn "已保留至 /tmp/oci-worker-restore-db.sql"
+            cp "${stage}/db.sql" "/tmp/ocx-worker-restore-db.sql"
+            warn "已保留至 /tmp/ocx-worker-restore-db.sql"
         fi
         rm -f "${cnf}"
     fi
@@ -770,12 +766,12 @@ cmd_uninstall() {
         info "保留 ${INSTALL_DIR}"
     fi
 
-    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "oci-worker-mysql"; then
-        if [ "$(ask_yes_no "删除 Docker MySQL 容器 oci-worker-mysql？" "N")" = "y" ]; then
-            docker rm -f oci-worker-mysql >/dev/null 2>&1 || true
+    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "ocx-worker-mysql"; then
+        if [ "$(ask_yes_no "删除 Docker MySQL 容器 ocx-worker-mysql？" "N")" = "y" ]; then
+            docker rm -f ocx-worker-mysql >/dev/null 2>&1 || true
             ok "MySQL 容器已删除"
-            if [ "$(ask_yes_no "也删除 MySQL 数据目录 /opt/oci-worker/data/mysql？" "N")" = "y" ]; then
-                rm -rf /opt/oci-worker/data/mysql
+            if [ "$(ask_yes_no "也删除 MySQL 数据目录 /opt/ocx-worker/data/mysql？" "N")" = "y" ]; then
+                rm -rf /opt/ocx-worker/data/mysql
                 ok "数据目录已删除"
             fi
         fi
