@@ -26,8 +26,7 @@
 > Debian 默认 root shell 是 dash，不支持 `<()` 进程替换。**推荐先下载再执行**：
 
 ```bash
-curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh
-bash /tmp/install.sh
+curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh && sudo bash /tmp/install.sh
 ```
 
 或者管道执行（Ubuntu / CentOS 等 root 是 bash 的也可以用 `bash <(curl ...)`）：

@@ -46,8 +46,7 @@
 复制粘贴执行即可（Debian / Ubuntu / CentOS 通用）：
 
 ```bash
-curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh
-sudo bash /tmp/install.sh
+curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh -o /tmp/install.sh && sudo bash /tmp/install.sh
 ```
 
 向导会问你：① 数据库使用方式 ② 数据库连接信息 ③ Web 端口。装完后浏览器访问 `http://<你的IP>:<端口>` 设置管理员账号即可登录。
