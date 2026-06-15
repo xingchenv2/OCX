@@ -28,6 +28,7 @@ readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
 readonly JAR_NAME="ocx-worker.jar"
+readonly APP_DIR="${INSTALL_DIR}/app"
 readonly SERVICE_NAME="ocx-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_SERVICE_NAME="oci-webssh"
@@ -90,7 +91,7 @@ require_root() {
 }
 
 require_installed() {
-    if [ ! -f "${CONFIG_FILE}" ] || [ ! -f "${INSTALL_DIR}/${JAR_NAME}" ]; then
+    if [ ! -f "${CONFIG_FILE}" ] || { [ ! -f "${INSTALL_DIR}/${JAR_NAME}" ] && [ ! -d "${APP_DIR}/BOOT-INF" ]; }; then
         die "未检测到 OCX 安装，请先运行 install.sh"
     fi
 }

@@ -27,6 +27,7 @@ readonly INSTALL_DIR="/opt/ocx-worker"
 readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
 readonly JAR_NAME="ocx-worker.jar"
+readonly APP_DIR="${INSTALL_DIR}/app"
 readonly JAR_ASSET="ocx-worker-1.0.0.jar"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
 readonly SERVICE_NAME="ocx-worker"
@@ -1004,7 +1005,7 @@ Type=simple
 User=ocxworker
 Group=ocxworker
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=/usr/local/bin/java -Xmx256m -Duser.timezone=Asia/Shanghai -Duser.dir=${INSTALL_DIR} -jar ${JAR_NAME} --spring.config.additional-location=file:${CONFIG_FILE}
+ExecStart=/usr/local/bin/java -Xmx256m -Duser.timezone=Asia/Shanghai -Duser.dir=${INSTALL_DIR} -cp "${APP_DIR}/BOOT-INF/classes:${APP_DIR}/BOOT-INF/lib/*" com.ocxworker.OcxWorkerApplication --spring.config.additional-location=file:${CONFIG_FILE}
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=45
@@ -1082,6 +1083,26 @@ download_jar() {
     fi
     mv "${tmp}" "${INSTALL_DIR}/${JAR_NAME}"
     ok "JAR 已就绪：$(numfmt --to=iec "${size}" 2>/dev/null || echo "${size} 字节")"
+    # Extract fat JAR into app/ directory for classpath-based launch
+    # (Spring Boot 3.5 JarLauncher nested-JAR loading fails on some JVMs)
+    extract_jar || return 1
+    return 0
+}
+
+# Extract the fat JAR into ${APP_DIR} so we can launch with -cp instead of -jar.
+# Spring Boot 3.5's JarLauncher uses a custom URL handler for nested JARs
+# that fails with ClassNotFoundException on certain platforms.
+extract_jar() {
+    info "解压 JAR 到 ${APP_DIR}…"
+    rm -rf "${APP_DIR}"
+    mkdir -p "${APP_DIR}"
+    if ! (cd "${APP_DIR}" && jar xf "${INSTALL_DIR}/${JAR_NAME}" 2>&1); then
+        err "JAR 解压失败"
+        rm -rf "${APP_DIR}"
+        return 1
+    fi
+    chown -R ocxworker:ocxworker "${APP_DIR}" 2>/dev/null || true
+    ok "JAR 解压完成"
     return 0
 }
 
