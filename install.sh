@@ -1008,11 +1008,6 @@ ExecStart=/usr/local/bin/java -Xmx256m -Duser.timezone=Asia/Shanghai -Duser.dir=
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=45
-# Harden: no new privileges, restrict filesystem access
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths=${INSTALL_DIR} /tmp
-PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
