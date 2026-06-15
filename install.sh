@@ -1094,6 +1094,7 @@ download_jar() {
 # that fails with ClassNotFoundException on certain platforms.
 extract_jar() {
     info "解压 JAR 到 ${APP_DIR}…"
+    ensure_cmd unzip
     rm -rf "${APP_DIR}"
     mkdir -p "${APP_DIR}"
     if (cd "${APP_DIR}" && unzip -q "${INSTALL_DIR}/${JAR_NAME}" 2>&1) 2>/dev/null; then
