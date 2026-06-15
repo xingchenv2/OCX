@@ -129,7 +129,7 @@ public class TelegramBotCommandService {
 
     private void handleStart() {
         this.loginSecurityService.setSitePaused(false);
-        this.notificationService.sendMessage("OCIWorker\u5df2\u542f\u52a8");
+        this.notificationService.sendMessage("OCX\u5df2\u542f\u52a8");
     }
 
     private void handleBans() {

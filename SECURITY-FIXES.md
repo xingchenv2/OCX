@@ -1,11 +1,11 @@
-# OCI Worker — Security Vulnerability Fixes
+# OCX — Security Vulnerability Fixes
 
 This document describes all security vulnerabilities identified in the
 original codebase and the fixes applied in this repository.
 
 > **Audited**: 2025-06-15  
 > **Auditor**: 星辰助手 (AI security review)  
-> **Scope**: Shell scripts (`install.sh`, `ociworker`) + decompiled Java backend
+> **Scope**: Shell scripts (`install.sh`, `ocx`) + decompiled Java backend
 
 ---
 
@@ -66,7 +66,7 @@ original codebase and the fixes applied in this repository.
 - **Fix**: Added `sql_escape_ident()` and `sql_escape_literal()` helper functions. All 4+ SQL injection points now use these.
 
 ### #11 MYSQL_PWD Environment Variable Leak
-- **File**: `install.sh`, `ociworker`
+- **File**: `install.sh`, `ocx`
 - **Risk**: `MYSQL_PWD` env var visible to any user via `/proc/<pid>/environ`.
 - **Fix**: Replaced all `MYSQL_PWD` usage with `--defaults-file=<temp.cnf>` approach via `_mysql_cnf()` helper. Temp `.cnf` files created with `chmod 600` and cleaned up after use.
 
@@ -79,33 +79,33 @@ original codebase and the fixes applied in this repository.
 
 ## Medium (P2) — Fixed
 
-### #13 Context Path Injection in `ociworker` CLI
-- **File**: `ociworker`
+### #13 Context Path Injection in `ocx` CLI
+- **File**: `ocx`
 - **Risk**: User-supplied `context` value interpolated into URL without validation.
 - **Fix**: Added input validation — context must match `^[a-zA-Z0-9._-]+$`.
 
 ### #14 Backup File Permissions
-- **File**: `ociworker` — `cmd_backup()`
+- **File**: `ocx` — `cmd_backup()`
 - **Risk**: Backup tar.gz contains database dumps + private keys, but created with default umask (644 world-readable).
 - **Fix**: `chmod 600` applied to all backup archives immediately after creation.
 
 ### #15 YAML Non-Atomic Write
-- **File**: `ociworker` — `yaml_set()`
+- **File**: `ocx` — `yaml_set()`
 - **Risk**: Direct write to YAML file can corrupt config on crash/power-loss.
 - **Fix**: Uses temp file + `os.replace()` (atomic rename on same filesystem).
 
 ### #16 Restore Order Bug
-- **File**: `ociworker` — `cmd_restore()`
+- **File**: `ocx` — `cmd_restore()`
 - **Risk**: Original code restored DB after config, but the DB import needs current config's DB credentials — fails if config was already overwritten.
 - **Fix**: Restore order changed: DB first (using current config credentials), then config/keys.
 
 ### #17 PEM Key Directory Permissions
-- **File**: `ociworker`
+- **File**: `ocx`
 - **Risk**: Keys directory world-readable by default.
 - **Fix**: `chmod 700` on KEYS_DIR, `chmod 600` on restored individual key files.
 
 ### #18 systemd Service Runs as Root
-- **File**: `ociworker` — service unit
+- **File**: `ocx` — service unit
 - **Risk**: Java backend runs as root — any RCE = full system compromise.
 - **Fix**: Service unit now includes `User=ociworker`, `Group=ociworker`, `NoNewPrivileges=true`, `ProtectSystem=strict`, `PrivateTmp=true`.
 
@@ -126,14 +126,14 @@ original codebase and the fixes applied in this repository.
 | Fix | File | Description |
 |-----|------|-------------|
 | SQL injection | install.sh | `sql_escape_ident()` / `sql_escape_literal()` for DB_NAME |
-| MYSQL_PWD leak | install.sh + ociworker | `--defaults-file` with `_mysql_cnf()` helper |
+| MYSQL_PWD leak | install.sh + ocx | `--defaults-file` with `_mysql_cnf()` helper |
 | Docker env pw | install.sh | Reverted broken `_FILE` approach; documented risk; rm secrets dir after start |
 | Port check | install.sh | `ss -tlnp` check for 3306 before docker run |
-| Backup perms | ociworker | `chmod 600` on backup archives |
-| YAML atomic | ociworker | `os.replace()` instead of direct write |
-| Restore order | ociworker | DB first, then config/keys |
-| KEYS_DIR perms | ociworker | `chmod 700` on keys dir, `chmod 600` on key files |
-| systemd user | ociworker | `User=ociworker` + hardening directives |
+| Backup perms | ocx | `chmod 600` on backup archives |
+| YAML atomic | ocx | `os.replace()` instead of direct write |
+| Restore order | ocx | DB first, then config/keys |
+| KEYS_DIR perms | ocx | `chmod 700` on keys dir, `chmod 600` on key files |
+| systemd user | ocx | `User=ociworker` + hardening directives |
 
 ---
 

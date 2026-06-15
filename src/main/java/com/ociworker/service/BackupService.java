@@ -137,7 +137,7 @@ public class BackupService {
 
     private String exportDatabase() throws SQLException {
         StringBuilder sb = new StringBuilder();
-        sb.append("-- OCI Worker Database Backup\n");
+        sb.append("-- OCX Database Backup\n");
         sb.append("-- Generated: ").append(LocalDateTime.now()).append("\n\n");
         sb.append("SET FOREIGN_KEY_CHECKS=0;\n\n");
         try (Connection conn = this.dataSource.getConnection();){

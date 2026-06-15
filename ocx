@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ociworker - Management CLI for OCI Worker
+# ocx - Management CLI for OCX
 # -----------------------------------------------------------------------------
 # Usage:
-#   ociworker                  Interactive menu
-#   ociworker status           Show status of oci-worker
-#   ociworker start            Start services
-#   ociworker stop             Stop services
-#   ociworker restart          Restart oci-worker
-#   ociworker logs             Tail oci-worker logs
-#   ociworker config           Modify port / database (rollback on failure)
-#   ociworker update           Run install.sh in upgrade mode
-#   ociworker backup           Backup db dump + application.yml + keys
-#   ociworker restore <file>   Restore from a backup tarball
-#   ociworker tg-clean         Clear Telegram bot binding (oci_kv); re-bind in web UI
-#   ociworker uninstall        Uninstall everything (asks before each step)
-#   ociworker version          Show installer version + jar info
+#   ocx                      Interactive menu
+#   ocx status           Show status of oci-worker
+#   ocx start            Start services
+#   ocx stop             Stop services
+#   ocx restart          Restart oci-worker
+#   ocx logs             Tail oci-worker logs
+#   ocx config           Modify port / database (rollback on failure)
+#   ocx update           Run install.sh in upgrade mode
+#   ocx backup           Backup db dump + application.yml + keys
+#   ocx restore <file>   Restore from a backup tarball
+#   ocx tg-clean         Clear Telegram bot binding (oci_kv); re-bind in web UI
+#   ocx uninstall        Uninstall everything (asks before each step)
+#   ocx version          Show installer version + jar info
 #
 # This script never modifies the database schema and never edits files outside
 # /opt/oci-worker, /etc/systemd/system/oci-worker*.service.
@@ -86,12 +86,12 @@ ask_yes_no() {
 }
 
 require_root() {
-    if [ "$(id -u)" -ne 0 ]; then die "请用 root 运行：sudo ociworker $*"; fi
+    if [ "$(id -u)" -ne 0 ]; then die "请用 root 运行：sudo ocx $*"; fi
 }
 
 require_installed() {
     if [ ! -f "${CONFIG_FILE}" ] || [ ! -f "${INSTALL_DIR}/${JAR_NAME}" ]; then
-        die "未检测到 OCI Worker 安装，请先运行 install.sh"
+        die "未检测到 OCX 安装，请先运行 install.sh"
     fi
 }
 
@@ -483,7 +483,7 @@ _change_database() {
     启动失败会自动回滚到上一份配置。
 
 [!] 如果是把数据迁移到新库（比如换到面板自带的 MySQL）：
-    请先 ociworker backup，把 dump.sql 导入新库后再来切连接。
+    请先 ocx backup，把 dump.sql 导入新库后再来切连接。
     否则切到空库后，登录页会变成首次设置（账号/租户/任务等数据
     看不到，本质是数据库被换走、新库还没数据）。
 
@@ -692,7 +692,7 @@ cmd_restore() {
     require_root restore
     require_installed
     local file="${1:-}"
-    [ -n "${file}" ] || die "用法：ociworker restore <backup-file.tar.gz>"
+    [ -n "${file}" ] || die "用法：ocx restore <backup-file.tar.gz>"
     [ -f "${file}" ] || die "文件不存在：${file}"
 
     warn "恢复将覆盖当前配置/密钥/数据库（不可逆）"
@@ -751,8 +751,8 @@ cmd_restore() {
 
 cmd_uninstall() {
     require_root uninstall
-    section "卸载 OCI Worker"
-    [ "$(ask_yes_no "确认要卸载 OCI Worker 吗？" "N")" = "y" ] || { info "已取消"; return 0; }
+    section "卸载 OCX"
+    [ "$(ask_yes_no "确认要卸载 OCX 吗？" "N")" = "y" ] || { info "已取消"; return 0; }
 
     info "停止服务..."
     systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
@@ -781,8 +781,8 @@ cmd_uninstall() {
         fi
     fi
 
-    if [ "$(ask_yes_no "删除管理脚本 ociworker？" "N")" = "y" ]; then
-        rm -f /usr/local/bin/ociworker
+    if [ "$(ask_yes_no "删除管理脚本 ocx？" "N")" = "y" ]; then
+        rm -f /usr/local/bin/ocx
         ok "已删除"
     fi
 
@@ -802,7 +802,7 @@ menu() {
     # In interactive menu mode, individual command failures must not exit
     # the whole script. Use `|| true` on every command invocation.
     while true; do
-        section "OCI Worker 管理"
+        section "OCX 管理"
         cat <<EOF
   1) 查看状态        2) 启动        3) 停止        4) 重启
   5) 查看实时日志    6) 修改配置（含回滚）

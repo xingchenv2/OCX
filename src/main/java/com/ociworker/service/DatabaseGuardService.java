@@ -142,7 +142,7 @@ public class DatabaseGuardService {
 
     private String exportAllTables() throws SQLException {
         StringBuilder sb = new StringBuilder();
-        sb.append("-- OCI Worker Auto Backup\n");
+        sb.append("-- OCX Auto Backup\n");
         sb.append("-- Generated: ").append(LocalDateTime.now()).append("\n\n");
         sb.append("SET NAMES utf8mb4;\n");
         sb.append("SET FOREIGN_KEY_CHECKS=0;\n\n");
@@ -268,7 +268,7 @@ public class DatabaseGuardService {
 
     private void sendAlert(String title, String detail) {
         try {
-            String msg = String.format("\u26a0\ufe0f\u3010OCI Worker \u6570\u636e\u5e93\u544a\u8b66\u3011\n\u72b6\u51b5\uff1a%s\n\u8be6\u60c5\uff1a%s\n\u65f6\u95f4\uff1a%s", title, detail, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            String msg = String.format("\u26a0\ufe0f\u3010OCX \u6570\u636e\u5e93\u544a\u8b66\u3011\n\u72b6\u51b5\uff1a%s\n\u8be6\u60c5\uff1a%s\n\u65f6\u95f4\uff1a%s", title, detail, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             this.notificationService.sendMessage(msg);
         }
         catch (Exception e) {

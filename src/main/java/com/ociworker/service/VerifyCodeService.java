@@ -91,7 +91,7 @@ public class VerifyCodeService {
             case "cfEmailDnsUnlock" -> "Cloudflare \u89e3\u9501 Email DNS MX";
             default -> action;
         };
-        String msg = String.format("\u3010OCI Worker \u5b89\u5168\u9a8c\u8bc1\u3011\n\u64cd\u4f5c\uff1a%s\n\u9a8c\u8bc1\u7801\uff1a%s\n\u6709\u6548\u671f\uff1a5\u5206\u949f\n\n\u5982\u975e\u672c\u4eba\u64cd\u4f5c\uff0c\u8bf7\u68c0\u67e5\u8d26\u6237\u5b89\u5168\u3002", actionName, code);
+        String msg = String.format("\u3010OCX \u5b89\u5168\u9a8c\u8bc1\u3011\n\u64cd\u4f5c\uff1a%s\n\u9a8c\u8bc1\u7801\uff1a%s\n\u6709\u6548\u671f\uff1a5\u5206\u949f\n\n\u5982\u975e\u672c\u4eba\u64cd\u4f5c\uff0c\u8bf7\u68c0\u67e5\u8d26\u6237\u5b89\u5168\u3002", actionName, code);
         this.notificationService.sendMessage(msg);
         log.info("Verification code sent for action: {}", (Object)action);
     }

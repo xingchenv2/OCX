@@ -260,7 +260,7 @@ public class NotificationService {
             }
             String url = String.format("https://api.telegram.org/bot%s/setMyCommands", botToken);
             ArrayList<Map<String, String>> commands = new ArrayList<Map<String, String>>();
-            commands.add(Map.of("command", "start", "description", "\u542f\u52a8OCIWorker"));
+            commands.add(Map.of("command", "start", "description", "\u542f\u52a8OCX"));
             commands.add(Map.of("command", "stop", "description", "\u6682\u505c\u5168\u7ad9\u8bbf\u95ee"));
             commands.add(Map.of("command", "logs", "description", "\u62a2\u673a\u4efb\u52a1"));
             commands.add(Map.of("command", "state", "description", "\u7cfb\u7edf\u72b6\u6001"));

@@ -1,8 +1,8 @@
-# OCI Worker
+# OCX
 
 基于 Spring Boot 3 + Vue 3 + Ant Design Vue 开发的 Oracle Cloud (OCI) 管理面板。
 
-> **v2 智能安装器** 已上线：5 分钟向导式部署，支持 1Panel / 宝塔已有 MySQL，自动数据库自检 + 配置回滚保护，附赠 `ociworker` 管理 CLI。详见下方"一键安装"。
+> **v2 智能安装器** 已上线：5 分钟向导式部署，支持 1Panel / 宝塔已有 MySQL，自动数据库自检 + 配置回滚保护，附赠 `ocx` 管理 CLI。详见下方"一键安装"。
 
 ## 功能特性
 
@@ -39,7 +39,7 @@
 - **数据库三选一**：① 已有 MySQL（1Panel / 宝塔等面板）② Docker 自动装 MySQL 8.0 ③ 我有 root，脚本自动建库建用户
 - **数据库自检**：连通性 / 版本 / 字符集 / DDL 权限，失败给出**精确的修复建议**
 - **配置改坏自动回滚**：服务起不来时自动还原上一版 `application.yml`
-- 装完顺便部署 `ociworker` 管理 CLI（一个命令搞定状态/日志/备份/升级/卸载）
+- 装完顺便部署 `ocx` 管理 CLI（一个命令搞定状态/日志/备份/升级/卸载）
 
 ### 一键安装命令
 
@@ -61,7 +61,7 @@ sudo bash /tmp/install.sh
 ### 方式一：管理脚本一键更新（推荐）
 
 ```bash
-sudo ociworker update
+sudo ocx update
 ```
 
 自动完成：停止服务 → 备份旧 JAR → 下载新 JAR → 启动新版 → **失败自动回滚到旧 JAR**。
@@ -80,40 +80,40 @@ sudo bash /tmp/install.sh
 
 ---
 
-## 日常管理：`ociworker`
+## 日常管理：`ocx`
 
 > **安装方式别搞混**  
 > - **推荐**：`install.sh` 向导，数据库选 **「② 用 Docker 装」** → 容器 `oci-worker-mysql`，`application.yml` 为 `localhost:3306`（见 [INSTALLER.md](./INSTALLER.md)）。  
-> Docker 装法下本机**通常没有** `mysql` 命令；用下面的 **`ociworker tg-clean`**（已支持自动进容器）。
+> Docker 装法下本机**通常没有** `mysql` 命令；用下面的 **`ocx tg-clean`**（已支持自动进容器）。
 
 ### Docker 安装 · 清除 Telegram 绑定
 
 面板里 **「Telegram 丢失」** 会提示 SSH 执行：
 
 ```bash
-sudo ociworker tg-clean
-# 或 ociworker 菜单 → 11）清除Tg绑定
+sudo ocx tg-clean
+# 或 ocx 菜单 → 11）清除Tg绑定
 ```
 
 脚本读 `/opt/oci-worker/application.yml` 的账号密码，在 **`oci-worker-mysql` 容器**里删 `oci_kv` 的 `tg_%` 项（与面板同一库）。更新脚本：
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/xingchenv2/OCX/main/ociworker -o /usr/local/bin/ociworker
-sudo chmod +x /usr/local/bin/ociworker
+sudo curl -fsSL https://raw.githubusercontent.com/xingchenv2/OCX/main/ocx -o /usr/local/bin/ocx
+sudo chmod +x /usr/local/bin/ocx
 ```
 
 ```bash
-ociworker                  # 进交互菜单（最常用）
-ociworker status           # 服务状态
-ociworker start/stop/restart
-ociworker logs             # 实时日志
-ociworker config           # 改端口/数据库（含自动回滚；账号密码请到 Web 设置）
-ociworker update           # 一键升级
-ociworker backup           # 备份数据库 + 配置 + keys
-ociworker restore <file>   # 从备份恢复
-ociworker tg-clean         # 清除 Telegram 绑定（无本机 mysql 时自动走 Docker 容器 oci-worker-mysql）
-ociworker version          # 查看版本
-ociworker uninstall        # 卸载（每步都问，给后悔药）
+ocx                  # 进交互菜单（最常用）
+ocx status           # 服务状态
+ocx start/stop/restart
+ocx logs             # 实时日志
+ocx config           # 改端口/数据库（含自动回滚；账号密码请到 Web 设置）
+ocx update           # 一键升级
+ocx backup           # 备份数据库 + 配置 + keys
+ocx restore <file>   # 从备份恢复
+ocx tg-clean         # 清除 Telegram 绑定（无本机 mysql 时自动走 Docker 容器 oci-worker-mysql）
+ocx version          # 查看版本
+ocx uninstall        # 卸载（每步都问，给后悔药）
 ```
 
 ---
@@ -134,7 +134,7 @@ ociworker uninstall        # 卸载（每步都问，给后悔药）
 
 ```bash
 # 1. 备份当前数据
-ociworker backup
+ocx backup
 # 输出：/opt/oci-worker/backups/backup-xxxxxxxx-xxxx.tar.gz
 
 # 2. 把 dump.sql 导入面板的新库
@@ -142,7 +142,7 @@ cd /tmp && tar xzf /opt/oci-worker/backups/backup-*.tar.gz
 mysql -h127.0.0.1 -P<面板MySQL端口> -uociworker -p oci_worker < dump.sql
 
 # 3. 切换到新数据库（一次性改完，自动重启验证 + 失败自动回滚，不用先停服）
-ociworker config   # 选 2) 数据库修改 / 迁移，按提示填新库的地址/端口/库名/用户名/密码
+ocx config   # 选 2) 数据库修改 / 迁移，按提示填新库的地址/端口/库名/用户名/密码
 ```
 
 > 万一连自动回滚都失败：从 `/opt/oci-worker/application.yml.bak.*` 找历史版本手动还原即可。
@@ -198,9 +198,9 @@ FLUSH PRIVILEGES;
 ├── application.yml       # 配置文件（权限 600）
 ├── application.yml.bak.* # 配置自动备份历史
 ├── keys/                 # PEM 密钥目录
-└── backups/              # ociworker backup 输出目录
+└── backups/              # ocx backup 输出目录
 
-/usr/local/bin/ociworker  # 管理 CLI
+/usr/local/bin/ocx  # 管理 CLI
 ```
 
 ## 免责声明

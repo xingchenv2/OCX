@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# OCI Worker - Smart Installer (v2)
+# OCX - Smart Installer (v2)
 # -----------------------------------------------------------------------------
 # Friendly interactive installer with the following features:
 #   * First-install wizard: JDK / DB / port / systemd / firewall
@@ -12,7 +12,7 @@
 #
 # This script is INDEPENDENT of the original deploy.sh / update.sh.
 # It does NOT modify anything outside /opt/oci-worker, /etc/systemd/system,
-# /usr/local/bin/ociworker.
+# /usr/local/bin/ocx.
 #
 # Run as root:
 #   bash <(curl -fsSL https://github.com/xingchenv2/OCX/releases/download/installer-latest/install.sh)
@@ -39,7 +39,7 @@ readonly JAR_RELEASE_TAG="latest"
 readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 
-readonly OCIWORKER_BIN="/usr/local/bin/ociworker"
+readonly OCX_BIN="/usr/local/bin/ocx"
 readonly TMP_DIR="$(mktemp -d -t oci-worker-installer.XXXXXX)"
 
 # JDK 21 (Adoptium Temurin)
@@ -841,7 +841,7 @@ WEB_DEFAULT_PASSWORD=""
 prompt_web() {
     section "Web 服务配置"
     while true; do
-        WEB_PORT="$(ask "OCI Worker Web 端口" "8818")"
+        WEB_PORT="$(ask "OCX Web 端口" "8818")"
         if [[ "${WEB_PORT}" =~ ^[0-9]+$ ]] && [ "${WEB_PORT}" -ge 1 ] && [ "${WEB_PORT}" -le 65535 ]; then
             if [ "${WEB_PORT}" -eq 8008 ]; then
                 warn "端口 8008 不可用，请换一个"
@@ -936,14 +936,14 @@ EOF
 write_systemd_unit() {
     info "写入 systemd 服务：${SERVICE_NAME}..."
     # Create dedicated service user (no login shell)
-    if ! id -u ociworker >/dev/null 2>&1; then
-        useradd --system --no-create-home --shell /usr/sbin/nologin ociworker 2>/dev/null || true
+    if ! id -u ocx >/dev/null 2>&1; then
+        useradd --system --no-create-home --shell /usr/sbin/nologin ocx 2>/dev/null || true
     fi
     # Ensure install dir is owned by service user
-    chown -R ociworker:ociworker "${INSTALL_DIR}" 2>/dev/null || true
+    chown -R ociworker:ocx "${INSTALL_DIR}" 2>/dev/null || true
     cat > "${SERVICE_FILE}" <<EOF
 [Unit]
-Description=OCI Worker
+Description=OCX
 After=network.target docker.service
 
 [Service]
@@ -966,7 +966,7 @@ WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
     systemctl enable "${SERVICE_NAME}" >/dev/null 2>&1 || true
-    ok "systemd 服务已注册（以 ociworker 用户运行，非 root）"
+    ok "systemd 服务已注册（以 ocx 用户运行，非 root）"
 }
 
 # 已部署环境可能仍为旧版 unit（无 TimeoutStopSec），升级时 stop 会等满 systemd 默认超时（常见 ~90s）
@@ -1103,9 +1103,9 @@ EOF
 }
 
 # -----------------------------------------------------------------------------
-# ociworker management script installation
+# ocx management script installation
 # -----------------------------------------------------------------------------
-install_ociworker_cli() {
+install_ocx_cli() {
     # Source priority:
     #   1. Same dir as install.sh (development / cloned repo)
     #   2. master branch raw (always up-to-date)
@@ -1113,35 +1113,35 @@ install_ociworker_cli() {
     local src=""
     local self_dir
     self_dir="$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")"
-    if [ -f "${self_dir}/ociworker" ]; then
-        src="${self_dir}/ociworker"
+    if [ -f "${self_dir}/ocx" ]; then
+        src="${self_dir}/ocx"
     fi
     if [ -z "${src}" ]; then
-        info "下载管理脚本 ociworker（优先 master 分支）..."
-        local tmp="${TMP_DIR}/ociworker"
-        if download_with_retry "${RAW_BASE}/ociworker" "${tmp}"; then
+        info "下载管理脚本 ocx（优先 master 分支）..."
+        local tmp="${TMP_DIR}/ocx"
+        if download_with_retry "${RAW_BASE}/ocx" "${tmp}"; then
             src="${tmp}"
-        elif download_with_retry "https://github.com/${REPO}/releases/download/${INSTALLER_RELEASE_TAG}/ociworker" "${tmp}"; then
+        elif download_with_retry "https://github.com/${REPO}/releases/download/${INSTALLER_RELEASE_TAG}/ocx" "${tmp}"; then
             src="${tmp}"
         else
-            warn "无法下载 ociworker（不影响主程序运行），可稍后手动安装"
+            warn "无法下载 ocx（不影响主程序运行），可稍后手动安装"
             return 0
         fi
     fi
-    install -m 0755 "${src}" "${OCIWORKER_BIN}"
-    # python3 is required by `ociworker config` for safe YAML editing.
+    install -m 0755 "${src}" "${OCX_BIN}"
+    # python3 is required by `ocx config` for safe YAML editing.
     if ! command -v python3 >/dev/null 2>&1; then
-        info "安装 python3（被 ociworker config 子命令使用）..."
-        pkg_install python3 || warn "python3 未能自动安装，ociworker config 子命令将不可用"
+        info "安装 python3（被 ocx config 子命令使用）..."
+        pkg_install python3 || warn "python3 未能自动安装，ocx config 子命令将不可用"
     fi
-    ok "管理脚本已安装：${OCIWORKER_BIN}（敲 \`ociworker\` 进菜单）"
+    ok "管理脚本已安装：${OCX_BIN}（敲 \`ocx\` 进菜单）"
 }
 
 # =============================================================================
 # Main entry points
 # =============================================================================
 do_install() {
-    section "OCI Worker 智能安装向导"
+    section "OCX 智能安装向导"
     info "系统架构：$(uname -m) (映射为 ${ARCH})"
     install_jdk21
 
@@ -1157,10 +1157,10 @@ do_install() {
     cleanup_legacy_webssh
 
     firewall_open_port "${WEB_PORT}"
-    install_ociworker_cli
+    install_ocx_cli
 
     if ! restart_with_rollback; then
-        die "OCI Worker 启动失败，已尝试回滚。请查看日志后再决定是否重试。"
+        die "OCX 启动失败，已尝试回滚。请查看日志后再决定是否重试。"
     fi
 
     security_notice
@@ -1179,18 +1179,18 @@ do_install() {
 防火墙提醒：
   * 已自动放行本机 ufw / firewalld 的 ${WEB_PORT}/tcp
   * 云厂商安全组里也要放行 ${WEB_PORT}/tcp（OCI/AWS/腾讯云等）
-常用管理命令（敲 ociworker 进交互菜单）：
-  ociworker status     查看状态
-  ociworker logs       查看实时日志
-  ociworker config     修改端口/数据库（含回滚；账号密码请在网页修改）
-  ociworker update     更新到最新版本
-  ociworker backup     备份数据库 + 配置 + 密钥
-  ociworker tg-clean   清除 Telegram 绑定（无本机 mysql 时自动经 Docker MySQL 容器）
+常用管理命令（敲 ocx 进交互菜单）：
+  ocx status     查看状态
+  ocx logs       查看实时日志
+  ocx config     修改端口/数据库（含回滚；账号密码请在网页修改）
+  ocx update     更新到最新版本
+  ocx backup     备份数据库 + 配置 + 密钥
+  ocx tg-clean   清除 Telegram 绑定（无本机 mysql 时自动经 Docker MySQL 容器）
 EOF
 }
 
 do_upgrade() {
-    section "OCI Worker 升级模式"
+    section "OCX 升级模式"
     info "检测到已有安装：${INSTALL_DIR}"
     info "升级模式不会修改 application.yml 和数据库"
 
@@ -1215,7 +1215,7 @@ do_upgrade() {
 
     cleanup_legacy_webssh
 
-    install_ociworker_cli
+    install_ocx_cli
 
     if restart_with_rollback; then
         # On success, drop the JAR backup
@@ -1230,7 +1230,7 @@ do_upgrade() {
         cat >&2 <<EOF
 访问地址:    http://${pub_ip}:${cur_port}
 查看日志:    journalctl -u ${SERVICE_NAME} -f
-管理命令:    ociworker
+管理命令:    ocx
 EOF
     else
         warn "新版本启动失败，回滚到旧 JAR..."

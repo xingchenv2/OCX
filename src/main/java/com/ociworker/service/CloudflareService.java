@@ -615,11 +615,11 @@ public class CloudflareService {
                 return out;
             }
             String recordId = rec.getStr((Object)"id");
-            this.updateDnsRecord(zoneId, recordId, "CNAME", rec.getStr((Object)"name"), target, Boolean.valueOf(true), Integer.valueOf(1), null, "OCI Worker Tunnel");
+            this.updateDnsRecord(zoneId, recordId, "CNAME", rec.getStr((Object)"name"), target, Boolean.valueOf(true), Integer.valueOf(1), null, "OCX Tunnel");
             out.put("dnsUpdated", true);
             return out;
         }
-        this.addDnsRecord(zoneId, "CNAME", hostname, target, Boolean.valueOf(true), Integer.valueOf(1), null, "OCI Worker Tunnel");
+        this.addDnsRecord(zoneId, "CNAME", hostname, target, Boolean.valueOf(true), Integer.valueOf(1), null, "OCX Tunnel");
         out.put("dnsCreated", true);
         return out;
     }
