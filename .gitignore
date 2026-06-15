@@ -3,3 +3,4 @@ release-assets/
 .build/
 *.jar
 oci-webssh-linux-*
+target/

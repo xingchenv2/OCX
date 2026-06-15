@@ -1155,6 +1155,26 @@ firewall_open_port() {
         firewall-cmd --reload >/dev/null 2>&1 || true
         info "firewalld 已放行 ${port}/tcp"
     fi
+    # Oracle Cloud / nftables backend: iptables rules managed via iptables-nft
+    # These are NOT covered by ufw/firewalld on OCI instances
+    if command -v iptables >/dev/null 2>&1; then
+        # Check if iptables has a default REJECT/DROP policy on INPUT (Oracle Cloud pattern)
+        local input_policy
+        input_policy="$(iptables -L INPUT -n 2>/dev/null | head -1 | grep -oE 'REJECT|DROP' || true)"
+        if [ -n "${input_policy}" ] || iptables -L INPUT -n 2>/dev/null | grep -q 'REJECT.*--.*0.0.0.0/0'; then
+            # Avoid duplicate rules
+            if ! iptables -C INPUT -p tcp --dport "${port}" -j ACCEPT 2>/dev/null; then
+                iptables -I INPUT -p tcp --dport "${port}" -j ACCEPT 2>/dev/null || true
+                info "iptables 已放行 ${port}/tcp（Oracle Cloud / nftables 后端）"
+                # Persist via iptables-persistent or nft save
+                if command -v netfilter-persistent >/dev/null 2>&1; then
+                    netfilter-persistent save 2>/dev/null || true
+                elif command -v iptables-save >/dev/null 2>&1; then
+                    iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+                fi
+            fi
+        fi
+    fi
 }
 
 cleanup_legacy_webssh() {
@@ -1174,6 +1194,19 @@ security_notice() {
     cat >&2 <<EOF
 * 推荐：用 Nginx 反向代理 + HTTPS（Let's Encrypt）保护 ${WEB_PORT}。
 EOF
+    # Auto-detect Oracle Cloud Infrastructure environment
+    if curl -s --max-time 2 http://169.254.169.254/opc/v1/instance/ >/dev/null 2>&1; then
+        cat >&2 <<EOF
+
+⚠️  检测到 Oracle Cloud 环境！
+   本机 iptables 已放行，但 OCI VCN 安全列表仍需手动配置：
+   1. 打开 OCI Console → Networking → Virtual Cloud Networks
+   2. 选择 VCN → Subnets → 你的子网 → Security Lists
+   3. 添加入站规则：源 0.0.0.0/0，协议 TCP，目标端口 ${WEB_PORT}
+   4. （IPv6 如需：源 ::/0，协议 TCP，目标端口 ${WEB_PORT}）
+   不放行安全列表 → 外部浏览器无法访问！
+EOF
+    fi
 }
 
 # -----------------------------------------------------------------------------
