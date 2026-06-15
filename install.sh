@@ -698,12 +698,21 @@ prompt_db_docker() {
     root_pass="$(ask_password "root 密码（用于初始化，可与上方相同）")"
     [ -n "${root_pass}" ] || root_pass="${DB_PASS}"
 
+    # 检测残留容器：如果是首次安装（没有配置文件），残留容器一定是失败遗留，直接清理
     if docker ps -a --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
-        warn "已存在容器 ocx-worker-mysql"
-        if [ "$(ask_yes_no "重新创建？（会保留 /opt/ocx-worker/data/mysql 数据目录）" "Y")" = "y" ]; then
+        if [ ! -f "${CONFIG_FILE}" ]; then
+            # 首次安装，残留容器可直接清理
+            info "检测到残留容器 ocx-worker-mysql，自动清理..."
             docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
+            rm -rf /opt/ocx-worker/data/mysql/* 2>/dev/null || true
         else
-            info "复用已有容器，请输入首次创建该容器时设置的密码"
+            # 升级模式，可能是正常复用
+            warn "已存在容器 ocx-worker-mysql"
+            if [ "$(ask_yes_no "重新创建？（会保留 /opt/ocx-worker/data/mysql 数据目录）" "Y")" = "y" ]; then
+                docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
+            else
+                info "复用已有容器，请输入首次创建该容器时设置的密码"
+            fi
         fi
     fi
 
@@ -713,7 +722,15 @@ prompt_db_docker() {
         # --- Reuse existing container ---
         if ! docker ps --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
             info "启动已有容器 ocx-worker-mysql..."
-            docker start ocx-worker-mysql >/dev/null 2>/dev/null || true
+            if ! docker start ocx-worker-mysql >/dev/null 2>/dev/null; then
+                err "容器启动失败，可能数据已损坏"
+                if [ "$(ask_yes_no "是否清空数据并重新创建容器？" "Y")" = "y" ]; then
+                    docker rm -f ocx-worker-mysql >/dev/null 2>/dev/null || true
+                    rm -rf /opt/ocx-worker/data/mysql/*
+                    continue
+                fi
+                die "数据库配置未完成，已退出安装"
+            fi
             sleep 2
         fi
         # Wait for MySQL to be ready (up to 60s)
