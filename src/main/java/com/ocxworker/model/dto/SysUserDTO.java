@@ -1,6 +1,5 @@
 /*
  * Decompiled with CFR 0.152.
- * 
  * Could not load the following classes:
  *  com.ocxworker.model.dto.SysUserDTO
  *  com.ocxworker.model.dto.SysUserDTO$OciCfg
@@ -8,6 +7,8 @@
  *  lombok.Generated
  */
 package com.ocxworker.model.dto;
+import lombok.Data;
+import lombok.Builder;
 
 import com.ocxworker.model.dto.SysUserDTO;
 import java.util.Set;
@@ -361,4 +362,64 @@ public class SysUserDTO {
         this.ociCfg = ociCfg;
     }
 }
+
+    @Data
+@Builder
+    @Builder
+    class OciCfg {
+        private String tenantId;
+        private String userId;
+        private String fingerprint;
+        private String region;
+        private String privateKeyPath;
+        private String compartmentId;
+
+        public OciCfg(String tenantId, String userId, String fingerprint, String region, String privateKeyPath, String compartmentId) {
+            this.tenantId = tenantId;
+            this.userId = userId;
+            this.fingerprint = fingerprint;
+            this.region = region;
+            this.privateKeyPath = privateKeyPath;
+            this.compartmentId = compartmentId;
+        }
+
+        public OciCfg() {}
+
+        public static OciCfgBuilder builder() { return new OciCfgBuilder(); }
+    }
+
+    @Data
+    @Builder
+    class CloudInstance {
+        private String instanceId;
+        private String name;
+        private String region;
+        private String shape;
+        private float ocpus;
+        private float memoryInGBs;
+        private String state;
+        private String publicIp;
+        private String privateIp;
+        private String imageId;
+        private String availabilityDomain;
+        private String timeCreated;
+
+        public CloudInstance(String instanceId, String name, String region, String shape, float ocpus, float memoryInGBs, String state, String publicIp, String privateIp, String imageId, String availabilityDomain, String timeCreated) {
+            this.instanceId = instanceId;
+            this.name = name;
+            this.region = region;
+            this.shape = shape;
+            this.ocpus = ocpus;
+            this.memoryInGBs = memoryInGBs;
+            this.state = state;
+            this.publicIp = publicIp;
+            this.privateIp = privateIp;
+            this.imageId = imageId;
+            this.availabilityDomain = availabilityDomain;
+            this.timeCreated = timeCreated;
+        }
+
+        public CloudInstance() {}
+    }
+
 

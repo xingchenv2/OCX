@@ -22,6 +22,7 @@
  *  org.springframework.stereotype.Service
  */
 package com.ocxworker.service;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
@@ -523,4 +524,17 @@ public class LoginSecurityService {
         return HttpRequestUtil.getCookie((HttpServletRequest)request, (String)"ow_did");
     }
 }
+
+    class IpFailWindow {
+        final AtomicInteger count = new AtomicInteger(0);
+        volatile long windowStart;
+        volatile boolean pauseOfferSent;
+    }
+
+    record Pending(PendingKind kind, String ip, String deviceId, long expireAt) {}
+
+    enum PendingKind {
+        BLOCK_IP, BLOCK_DEVICE, PAUSE_SITE, RESUME_SITE, IGNORE_FAILS, UNBLOCK_IP, UNBLOCK_DEVICE;
+    }
+
 

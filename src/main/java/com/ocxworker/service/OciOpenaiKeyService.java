@@ -172,3 +172,6 @@ public class OciOpenaiKeyService {
     }
 }
 
+    record KeyCreateResult(String id, String plainKey, String keyPrefix, String keyMasked) {}
+
+

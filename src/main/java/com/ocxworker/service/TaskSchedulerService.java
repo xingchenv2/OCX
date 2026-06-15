@@ -494,7 +494,7 @@ implements SmartLifecycle {
             return new ArrayList<Map<String, Object>>();
         }
         try {
-            return (List)JSON.readValue(json, (TypeReference)new /* Unavailable Anonymous Inner Class!! */);
+            return (List)JSON.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
         }
         catch (Exception e) {
             log.warn("Failed to parse created_instances: {}", (Object)e.getMessage());

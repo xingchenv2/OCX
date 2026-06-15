@@ -3066,3 +3066,8 @@ public class CloudflareService {
     }
 }
 
+    record Credentials(String accountId, String apiToken) {}
+    record HttpBinaryResponse(String contentType, byte[] body) {}
+    record MetricQuery(long value, boolean available) {}
+
+

@@ -98,3 +98,6 @@ public final class ShapeFlexLimitsUtil {
     }
 }
 
+    record FlexLimits(float defaultOcpus, float defaultMemoryGb, float maxOcpus, float maxMemoryGb) {}
+
+

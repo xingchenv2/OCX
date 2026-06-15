@@ -707,3 +707,6 @@ final class OspSubscriptionEnricher {
     }
 }
 
+    record ResolvedStatus(String code, String label) {}
+
+

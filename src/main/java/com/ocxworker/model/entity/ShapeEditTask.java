@@ -277,3 +277,8 @@ public class ShapeEditTask {
     }
 }
 
+    enum Status {
+        PENDING, RUNNING, PAUSED, SUCCESS, FAILED, STOPPED;
+    }
+
+

@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class VerifyCodeService {
+    record CodeEntry(String code, long expireAt) {}
     @Generated
     private static final Logger log = LoggerFactory.getLogger(VerifyCodeService.class);
     private static final long CODE_EXPIRE_MS = 300000L;

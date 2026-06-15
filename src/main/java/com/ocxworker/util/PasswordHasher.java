@@ -1,5 +1,4 @@
 package com.ocxworker.util;
-
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import java.util.regex.Pattern;
 

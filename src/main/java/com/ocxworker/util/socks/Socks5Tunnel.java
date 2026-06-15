@@ -37,9 +37,19 @@ public final class Socks5Tunnel {
             try {
                 Socket socket;
                 if (hasCreds) {
-                    Authenticator.setDefault((Authenticator)new /* Unavailable Anonymous Inner Class!! */);
+                    Authenticator.setDefault(new Authenticator() {
+                        @Override
+                        protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
+                            return new java.net.PasswordAuthentication(u, p.toCharArray());
+                        }
+                    });
                 } else {
-                    Authenticator.setDefault((Authenticator)new /* Unavailable Anonymous Inner Class!! */);
+                    Authenticator.setDefault(new Authenticator() {
+                        @Override
+                        protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
+                            return null;
+                        }
+                    });
                 }
                 Socket s = new Socket(proxy);
                 try {

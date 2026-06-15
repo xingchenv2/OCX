@@ -28,7 +28,7 @@ readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
 readonly JAR_NAME="ocx-worker.jar"
 readonly APP_DIR="${INSTALL_DIR}/app"
-readonly JAR_ASSET="ocx-worker-0.1.1.jar"
+readonly JAR_ASSET="ocx-worker-0.2.0.jar"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
 readonly SERVICE_NAME="ocx-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
@@ -36,7 +36,7 @@ readonly LEGACY_WEBSSH_BIN="${INSTALL_DIR}/oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE="oci-webssh"
 
 readonly REPO="xingchenv2/OCX"
-readonly JAR_RELEASE_TAG="latest"
+readonly JAR_RELEASE_TAG="v0.2.0"
 readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 
@@ -961,6 +961,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
+      - org.springframework.ai.autoconfigure.openai.OpenAiConnectionAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: "$(yaml_escape "${jdbc_url}")"
@@ -968,7 +972,7 @@ spring:
     password: "$(yaml_escape "${DB_PASS}")"
   sql:
     init:
-      mode: never
+      mode: always
 
 mybatis-plus:
   mapper-locations: classpath*:com/ocxworker/mapper/xml/*.xml,classpath*:mapper/*.xml

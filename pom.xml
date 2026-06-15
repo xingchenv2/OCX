@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ocxworker</groupId>
     <artifactId>ocx-worker</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <name>ocx-worker</name>
     <description>OCI Cloud Management Panel</description>
 
@@ -227,6 +227,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Password Hashing -->
+        <dependency>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bcrypt</artifactId>
+            <version>0.10.2</version>
         </dependency>
 
         <!-- Lombok -->

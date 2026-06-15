@@ -162,9 +162,17 @@ public class OciProxyConfigService {
         String user = Socks5Tunnel.normalizeSocksCredential((String)s.proxyUser());
         char[] pass = Socks5Tunnel.normalizeSocksCredential((String)s.proxyPass()).toCharArray();
         if (user.isEmpty() && pass.length == 0) {
-            return new /* Unavailable Anonymous Inner Class!! */;
+            return new Authenticator() {
+                protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
+                    return null;
+                }
+            };
         }
-        return new /* Unavailable Anonymous Inner Class!! */;
+        return new Authenticator() {
+            protected java.net.PasswordAuthentication requestPasswordAuthenticationInstance(String host, int port, String protocol, String prompt, String scheme) {
+                return new java.net.PasswordAuthentication(user, pass);
+            }
+        };
     }
 
     public void persistAndReload(OciProxySnapshot s) {
@@ -180,11 +188,20 @@ public class OciProxyConfigService {
     }
 
     private static ProxySelector noProxySelector() {
-        return new /* Unavailable Anonymous Inner Class!! */;
+        return ProxySelector.of(null);
     }
 
     private static ProxySelector singleProxy(Proxy proxy) {
-        return new /* Unavailable Anonymous Inner Class!! */;
+        return new ProxySelector() {
+            @Override
+            public List<Proxy> select(URI uri) {
+                return List.of(proxy);
+            }
+            @Override
+            public void connectFailed(URI uri, java.net.SocketAddress sa, java.io.IOException ioe) {
+                // no-op
+            }
+        };
     }
 
     public static void clearInProcessHttpSocksProxySystemProperties() {

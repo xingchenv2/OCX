@@ -29,23 +29,6 @@ import java.util.function.Function;
  * Exception performing whole class analysis ignored.
  */
 public record OciProxySnapshot(boolean enabled, String type, String host, int port, String proxyUser, String proxyPass, String fullUrl) {
-    private final boolean enabled;
-    private final String type;
-    private final String host;
-    private final int port;
-    private final String proxyUser;
-    private final String proxyPass;
-    private final String fullUrl;
-
-    public OciProxySnapshot(boolean enabled, String type, String host, int port, String proxyUser, String proxyPass, String fullUrl) {
-        this.enabled = enabled;
-        this.type = type;
-        this.host = host;
-        this.port = port;
-        this.proxyUser = proxyUser;
-        this.proxyPass = proxyPass;
-        this.fullUrl = fullUrl;
-    }
 
     public static OciProxySnapshot disabled() {
         return new OciProxySnapshot(false, "http", "", 0, "", "", "");
@@ -234,32 +217,5 @@ public record OciProxySnapshot(boolean enabled, String type, String host, int po
         return m;
     }
 
-    public boolean enabled() {
-        return this.enabled;
-    }
-
-    public String type() {
-        return this.type;
-    }
-
-    public String host() {
-        return this.host;
-    }
-
-    public int port() {
-        return this.port;
-    }
-
-    public String proxyUser() {
-        return this.proxyUser;
-    }
-
-    public String proxyPass() {
-        return this.proxyPass;
-    }
-
-    public String fullUrl() {
-        return this.fullUrl;
-    }
 }
 

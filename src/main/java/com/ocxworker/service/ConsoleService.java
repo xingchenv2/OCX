@@ -31,6 +31,7 @@
  *  org.springframework.stereotype.Service
  */
 package com.ocxworker.service;
+import lombok.Data;
 
 import com.ocxworker.exception.OciException;
 import com.ocxworker.mapper.OciUserMapper;
@@ -367,4 +368,15 @@ public class ConsoleService {
         return new OciClientService(this.buildDto(ociUser), r);
     }
 }
+
+    @Data
+    class ConsoleSession {
+        private String consoleConnectionId;
+        private String instanceId;
+        private String tenantId;
+        private String sshCommand;
+        private String execScriptPath;
+        private long createdAt;
+    }
+
 

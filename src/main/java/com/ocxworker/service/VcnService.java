@@ -1529,3 +1529,16 @@ public class VcnService {
     }
 }
 
+    interface ChildrenFetcher {
+        List<Map<String, Object>> fetch(OciClientService client, String compartmentId);
+    }
+
+    interface ClientAction {
+        void run(OciClientService client);
+    }
+
+    interface OpName {
+        String get();
+    }
+
+

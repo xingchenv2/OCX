@@ -250,4 +250,7 @@ public class LoginAuditService {
             log.warn("[LoginAudit] purge failed: {}", (Object) e.getMessage());
         }
     }
+
+    public record ParsedUa(String os, String browser) {}
+
 }

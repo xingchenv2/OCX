@@ -176,7 +176,7 @@ public class DomainManagementService {
     }
 
     private OciClientService buildClient(String tenantId) {
-        OciUser user = (OciUser)this.userMapper.selectById((Serializable)((Object)tenantId));
+        OciUser user = (OciUser)this.userMapper.selectById((Serializable)(tenantId));
         if (user == null) {
             throw new OciException("\u79df\u6237\u914d\u7f6e\u4e0d\u5b58\u5728");
         }
@@ -217,11 +217,11 @@ public class DomainManagementService {
                     for (Map map : domains) {
                         sb.append("[").append(map.get("displayName")).append("/").append(map.get("type")).append("] ");
                     }
-                    log.info("Identity Domains found: {}", (Object)sb);
+                    log.info("Identity Domains found: {}", sb);
                 }
             }
             catch (Exception e) {
-                log.warn("Failed to list domains: {}", (Object)e.getMessage());
+                log.warn("Failed to list domains: {}", e.getMessage());
                 if (suppressErrors) break block7;
                 throw new OciException("\u5217\u51fa Identity Domain \u5931\u8d25: " + (e.getMessage() != null ? e.getMessage() : "\u672a\u77e5\u9519\u8bef"));
             }
@@ -282,7 +282,7 @@ public class DomainManagementService {
                     r.putAll(pwd);
                 }
                 catch (Exception e) {
-                    log.warn("Domain {} settings fetch failed: {}", d.get("displayName"), (Object)e.getMessage());
+                    log.warn("Domain {} settings fetch failed: {}", d.get("displayName"), e.getMessage());
                     r.put("error", e.getMessage());
                 }
                 finally {
@@ -332,7 +332,7 @@ public class DomainManagementService {
                 }
             }
             catch (Exception ee) {
-                log.warn("Fallback listPolicies failed: {}", (Object)ee.getMessage());
+                log.warn("Fallback listPolicies failed: {}", ee.getMessage());
                 r.put("mfaEnabled", null);
                 r.put("mfaError", ee.getMessage());
             }
@@ -363,7 +363,7 @@ public class DomainManagementService {
             }
         }
         catch (Exception e) {
-            log.warn("fetchDefaultPasswordPolicy failed: {}", (Object)e.getMessage());
+            log.warn("fetchDefaultPasswordPolicy failed: {}", e.getMessage());
             r.put("passwordPolicyError", e.getMessage());
         }
         return r;
@@ -375,9 +375,9 @@ public class DomainManagementService {
             Map target = this.findDomain(domains, domainId);
             try (IdentityDomainsClient dc = this.newDomainClient(client, (String)target.get("url"));){
                 ArrayList<Operations> ops = new ArrayList<Operations>();
-                ops.add(Operations.builder().op(Operations.Op.Replace).path("active").value((Object)enabled).build());
-                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:consent").value((Object)true).build());
-                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:justification").value((Object)(enabled ? "MFA enabled via ocx-worker" : "MFA disabled via ocx-worker")).build());
+                ops.add(Operations.builder().op(Operations.Op.Replace).path("active").value(enabled).build());
+                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:consent").value(true).build());
+                ops.add(Operations.builder().op(Operations.Op.Replace).path("urn:ietf:params:scim:schemas:oracle:idcs:extension:ociconsolesignonpolicyconsent:Policy:justification").value((enabled ? "MFA enabled via ocx-worker" : "MFA disabled via ocx-worker")).build());
                 PatchOp patch = PatchOp.builder().schemas(List.of("urn:ietf:params:scim:api:messages:2.0:PatchOp")).operations(ops).build();
                 dc.patchPolicy(PatchPolicyRequest.builder().policyId("OciConsolePolicy").patchOp(patch).build());
                 log.info("OciConsolePolicy active={} for tenant={} domain={}", new Object[]{enabled, tenantId, target.get("displayName")});
@@ -409,7 +409,7 @@ public class DomainManagementService {
                     throw new OciException("\u672a\u627e\u5230\u5bc6\u7801\u7b56\u7565\uff08DefaultPasswordPolicy\uff09");
                 }
                 ArrayList<Operations> ops = new ArrayList<Operations>();
-                ops.add(Operations.builder().op(Operations.Op.Replace).path("passwordExpiresAfter").value((Object)days).build());
+                ops.add(Operations.builder().op(Operations.Op.Replace).path("passwordExpiresAfter").value(days).build());
                 PatchOp patch = PatchOp.builder().schemas(List.of("urn:ietf:params:scim:api:messages:2.0:PatchOp")).operations(ops).build();
                 dc.patchPasswordPolicy(PatchPasswordPolicyRequest.builder().passwordPolicyId(existing.getId()).patchOp(patch).build());
                 log.info("passwordExpiresAfter={} days for tenant={} domain={} policy={}", new Object[]{days, tenantId, target.get("displayName"), existing.getName()});
@@ -469,7 +469,7 @@ public class DomainManagementService {
                     if ((resp = auditClient.listEvents(reqB.build())).getItems() == null) continue;
                     events.addAll(resp.getItems());
                 } while ((page = resp.getOpcNextPage()) != null && !page.isEmpty() && events.size() < maxEvents);
-                log.info("OCI Audit listEvents rawTotal={} windowDays={}", (Object)events.size(), (Object)window);
+                log.info("OCI Audit listEvents rawTotal={} windowDays={}", events.size(), window);
             }
             LinkedHashMap grouped = new LinkedHashMap();
             for (Map d : domains) {
@@ -489,7 +489,7 @@ public class DomainManagementService {
                 String etFull = ev.getEventType();
                 String scmEventId = null;
                 Data data = ev.getData();
-                Map map = addl = data != null && data.getAdditionalDetails() != null ? DomainManagementService.castStringObjectMap((Object)data.getAdditionalDetails()) : null;
+                Map map = addl = data != null && data.getAdditionalDetails() != null ? DomainManagementService.castStringObjectMap(data.getAdditionalDetails()) : null;
                 if (addl != null && (eid = addl.get("eventId")) != null) {
                     scmEventId = String.valueOf(eid).trim();
                 }
@@ -652,7 +652,7 @@ public class DomainManagementService {
         if (rid != null && rid.contains("ocid1.domain.")) {
             return rid;
         }
-        Map addl = DomainManagementService.castStringObjectMap((Object)data.getAdditionalDetails());
+        Map addl = DomainManagementService.castStringObjectMap(data.getAdditionalDetails());
         if (addl == null) {
             return null;
         }
@@ -730,7 +730,7 @@ public class DomainManagementService {
                     r.put("trustedDevice", trusted);
                 }
                 catch (Exception e) {
-                    log.warn("list auth factor for domain {} failed: {}", d.get("displayName"), (Object)e.getMessage());
+                    log.warn("list auth factor for domain {} failed: {}", d.get("displayName"), e.getMessage());
                     r.put("error", e.getMessage() == null ? "\u67e5\u8be2\u5931\u8d25" : e.getMessage());
                 }
                 domainResults.add(r);
@@ -978,7 +978,7 @@ public class DomainManagementService {
      * WARNING - Removed try catching itself - possible behaviour change.
      */
     public List<Map<String, Object>> getServiceQuotas(String tenantId) {
-        OciUser user = (OciUser)this.userMapper.selectById((Serializable)((Object)tenantId));
+        OciUser user = (OciUser)this.userMapper.selectById((Serializable)(tenantId));
         if (user == null) {
             throw new OciException("\u79df\u6237\u914d\u7f6e\u4e0d\u5b58\u5728");
         }

@@ -63,7 +63,6 @@ import com.oracle.bmc.usageapi.requests.RequestSummarizedUsagesRequest;
 import com.oracle.bmc.usageapi.responses.RequestSummarizedUsagesResponse;
 import jakarta.annotation.Resource;
 import java.io.Serializable;
-import java.lang.invoke.CallSite;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -98,80 +97,77 @@ public class UsageCostService {
      * WARNING - Removed try catching itself - possible behaviour change.
      */
     public Map<String, Object> fetchSubscriptionUsageCost(OciClientService oci, String tenancyId, List<String> subscriptionIds, String usageStartIso, String fallbackRegion) {
-        ArrayList<CallSite> failureNotes;
+        ArrayList<String> failureNotes;
         ArrayList<String> attempted;
         LinkedHashMap<String, Object> out;
-        block12: {
-            out = new LinkedHashMap<String, Object>();
-            out.put("available", Boolean.FALSE);
-            out.put("reason", null);
-            out.put("subscriptionIdUsed", null);
-            out.put("attemptedSubscriptionIds", List.of());
-            out.put("timeUsageStarted", null);
-            out.put("timeUsageEnded", null);
-            out.put("summary", null);
-            out.put("byService", new ArrayList());
-            if (StrUtil.isBlank((CharSequence)tenancyId)) {
-                out.put("reason", "\u7f3a\u5c11 tenancy OCID");
-                return out;
-            }
-            List candidates = UsageCostService.dedupeOcidCandidates(subscriptionIds);
-            if (candidates.isEmpty()) {
-                out.put("reason", "\u7f3a\u5c11\u8ba2\u9605 OCID\uff0c\u65e0\u6cd5\u6309\u8ba2\u9605\u67e5\u8be2 Usage \u6d88\u8d39");
-                return out;
-            }
-            LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
-            LocalDate startDay = UsageCostService.parseUsageStartDay((String)usageStartIso, (LocalDate)todayUtc);
-            LocalDate endDay = todayUtc.plusDays(1L);
-            Date timeStart = Date.from(startDay.atStartOfDay(ZoneOffset.UTC).toInstant());
-            Date timeEnd = Date.from(endDay.atStartOfDay(ZoneOffset.UTC).toInstant());
-            out.put("timeUsageStarted", timeStart.toInstant().toString());
-            out.put("timeUsageEnded", timeEnd.toInstant().toString());
-            UsageapiClient client = UsageapiClient.builder().build((AbstractAuthenticationDetailsProvider)oci.getProvider());
-            String usageRegion = UsageCostService.resolveTenancyHomeRegionName((IdentityClient)oci.getIdentityClient(), (String)tenancyId, (String)fallbackRegion);
+        out = new LinkedHashMap<String, Object>();
+        out.put("available", Boolean.FALSE);
+        out.put("reason", null);
+        out.put("subscriptionIdUsed", null);
+        out.put("attemptedSubscriptionIds", List.of());
+        out.put("timeUsageStarted", null);
+        out.put("timeUsageEnded", null);
+        out.put("summary", null);
+        out.put("byService", new ArrayList());
+        if (StrUtil.isBlank((CharSequence)tenancyId)) {
+            out.put("reason", "\u7f3a\u5c11 tenancy OCID");
+            return out;
+        }
+        List candidates = UsageCostService.dedupeOcidCandidates(subscriptionIds);
+        if (candidates.isEmpty()) {
+            out.put("reason", "\u7f3a\u5c11\u8ba2\u9605 OCID\uff0c\u65e0\u6cd5\u6309\u8ba2\u9605\u67e5\u8be2 Usage \u6d88\u8d39");
+            return out;
+        }
+        LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
+        LocalDate startDay = UsageCostService.parseUsageStartDay((String)usageStartIso, (LocalDate)todayUtc);
+        LocalDate endDay = todayUtc.plusDays(1L);
+        Date timeStart = Date.from(startDay.atStartOfDay(ZoneOffset.UTC).toInstant());
+        Date timeEnd = Date.from(endDay.atStartOfDay(ZoneOffset.UTC).toInstant());
+        out.put("timeUsageStarted", timeStart.toInstant().toString());
+        out.put("timeUsageEnded", timeEnd.toInstant().toString());
+        UsageapiClient client = UsageapiClient.builder().build((AbstractAuthenticationDetailsProvider)oci.getProvider());
+        String usageRegion = UsageCostService.resolveTenancyHomeRegionName((IdentityClient)oci.getIdentityClient(), (String)tenancyId, (String)fallbackRegion);
+        try {
+            client.setRegion(Region.fromRegionId((String)usageRegion));
+        }
+        catch (Exception e) {
+            client.setRegion(Region.US_ASHBURN_1);
+        }
+        attempted = new ArrayList<String>();
+        failureNotes = new ArrayList<String>();
+        for (String subId : candidates) {
+            attempted.add(subId);
             try {
-                client.setRegion(Region.fromRegionId((String)usageRegion));
+                List totalRows = UsageCostService.queryCost((UsageapiClient)client, (String)tenancyId, (Date)timeStart, (Date)timeEnd, (RequestSummarizedUsagesDetails.Granularity)RequestSummarizedUsagesDetails.Granularity.Monthly, List.of(), (boolean)true, (Filter)UsageCostService.subscriptionFilter((String)subId));
+                List serviceRows = UsageCostService.queryCost((UsageapiClient)client, (String)tenancyId, (Date)timeStart, (Date)timeEnd, (RequestSummarizedUsagesDetails.Granularity)RequestSummarizedUsagesDetails.Granularity.Monthly, List.of("service"), (boolean)true, (Filter)UsageCostService.subscriptionFilter((String)subId));
+                BigDecimal total = UsageCostService.sumComputedAmount((List)totalRows);
+                String currency = UsageCostService.pickCurrency((List[])new List[]{totalRows, serviceRows});
+                LinkedHashMap<String, String> summary = new LinkedHashMap<String, String>();
+                summary.put("totalConsumed", UsageCostService.toPlain((BigDecimal)total));
+                summary.put("currency", currency);
+                summary.put("totalConsumedLabel", UsageCostService.formatCostLabel((BigDecimal)total, (String)currency));
+                out.put("summary", summary);
+                out.put("byService", UsageCostService.aggregateByService((List)serviceRows, (String)currency));
+                out.put("available", Boolean.TRUE);
+                out.put("subscriptionIdUsed", subId);
+                out.put("attemptedSubscriptionIds", attempted);
+                out.put("reason", null);
+                LinkedHashMap<String, Object> linkedHashMap = out;
+                return linkedHashMap;
+            }
+            catch (BmcException e) {
+                log.warn("Usage API subscription {} failed: {}", (Object)subId, (Object)e.getMessage());
+                failureNotes.add(UsageCostService.shortOcid((String)subId) + ": " + UsageCostService.formatUsageApiError((Exception)((Object)e)));
             }
             catch (Exception e) {
-                client.setRegion(Region.US_ASHBURN_1);
-            }
-            attempted = new ArrayList<String>();
-            failureNotes = new ArrayList<CallSite>();
-            for (String subId : candidates) {
-                attempted.add(subId);
-                try {
-                    List totalRows = UsageCostService.queryCost((UsageapiClient)client, (String)tenancyId, (Date)timeStart, (Date)timeEnd, (RequestSummarizedUsagesDetails.Granularity)RequestSummarizedUsagesDetails.Granularity.Monthly, List.of(), (boolean)true, (Filter)UsageCostService.subscriptionFilter((String)subId));
-                    List serviceRows = UsageCostService.queryCost((UsageapiClient)client, (String)tenancyId, (Date)timeStart, (Date)timeEnd, (RequestSummarizedUsagesDetails.Granularity)RequestSummarizedUsagesDetails.Granularity.Monthly, List.of("service"), (boolean)true, (Filter)UsageCostService.subscriptionFilter((String)subId));
-                    BigDecimal total = UsageCostService.sumComputedAmount((List)totalRows);
-                    String currency = UsageCostService.pickCurrency((List[])new List[]{totalRows, serviceRows});
-                    LinkedHashMap<String, String> summary = new LinkedHashMap<String, String>();
-                    summary.put("totalConsumed", UsageCostService.toPlain((BigDecimal)total));
-                    summary.put("currency", currency);
-                    summary.put("totalConsumedLabel", UsageCostService.formatCostLabel((BigDecimal)total, (String)currency));
-                    out.put("summary", summary);
-                    out.put("byService", UsageCostService.aggregateByService((List)serviceRows, (String)currency));
-                    out.put("available", Boolean.TRUE);
-                    out.put("subscriptionIdUsed", subId);
-                    out.put("attemptedSubscriptionIds", attempted);
-                    out.put("reason", null);
-                    LinkedHashMap<String, Object> linkedHashMap = out;
-                    return linkedHashMap;
-                }
-                catch (BmcException e) {
-                    log.warn("Usage API subscription {} failed: {}", (Object)subId, (Object)e.getMessage());
-                    failureNotes.add((CallSite)((Object)(UsageCostService.shortOcid((String)subId) + ": " + UsageCostService.formatUsageApiError((Exception)((Object)e)))));
-                }
-                catch (Exception e) {
-                    log.warn("Usage API subscription {} failed: {}", (Object)subId, (Object)e.getMessage());
-                    failureNotes.add((CallSite)((Object)(UsageCostService.shortOcid((String)subId) + ": " + UsageCostService.formatUsageApiError((Exception)e))));
-                }
-            }
-            out.put("attemptedSubscriptionIds", attempted);
-            break block12;
-            finally {
-                client.close();
+                log.warn("Usage API subscription {} failed: {}", (Object)subId, (Object)e.getMessage());
+                failureNotes.add(UsageCostService.shortOcid((String)subId) + ": " + UsageCostService.formatUsageApiError((Exception)e));
             }
         }
+        out.put("attemptedSubscriptionIds", attempted);
+        try {
+            client.close();
+        } catch (Exception ignored) {}
         out.put("reason", failureNotes.isEmpty() ? "Usage API \u672a\u8fd4\u56de\u8be5\u8ba2\u9605\u6d88\u8d39\u6570\u636e" : "\u5df2\u5c1d\u8bd5 " + attempted.size() + " \u4e2a\u8ba2\u9605 OCID\uff1b" + String.join((CharSequence)"\uff1b", failureNotes));
         return out;
     }

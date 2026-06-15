@@ -109,7 +109,7 @@ public class NotificationService {
             c.send(req, HttpResponse.BodyHandlers.discarding());
         }
         catch (Exception e) {
-            log.warn("Failed to send Telegram message to explicit chat: {}", (Object)e.getMessage());
+            log.warn("Failed to send Telegram message to explicit chat: {}", e.getMessage());
         }
     }
 
@@ -147,7 +147,7 @@ public class NotificationService {
             c.send(req, HttpResponse.BodyHandlers.discarding());
         }
         catch (Exception e) {
-            log.warn("Failed to send Telegram HTML keyboard message: {}", (Object)e.getMessage());
+            log.warn("Failed to send Telegram HTML keyboard message: {}", e.getMessage());
         }
     }
 
@@ -171,32 +171,32 @@ public class NotificationService {
             c.send(req, HttpResponse.BodyHandlers.discarding());
         }
         catch (Exception e) {
-            log.warn("Failed to send Telegram HTML message: {}", (Object)e.getMessage());
+            log.warn("Failed to send Telegram HTML message: {}", e.getMessage());
         }
     }
 
     public String getKvValue(SysCfgEnum cfg) {
-        OciKv kv = (OciKv)this.kvMapper.selectOne((Wrapper)((LambdaQueryWrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciKv::getCode, (Object)cfg.getCode())).eq(OciKv::getType, (Object)cfg.getType())).last("LIMIT 1"));
+        OciKv kv = this.kvMapper.selectOne(new LambdaQueryWrapper<OciKv>().eq(OciKv::getCode, cfg.getCode()).eq(OciKv::getType, cfg.getType()).last("LIMIT 1"));
         return kv != null ? kv.getValue() : null;
     }
 
     public void saveKvValue(SysCfgEnum cfg, String value) {
-        OciKv existing = (OciKv)this.kvMapper.selectOne((Wrapper)((LambdaQueryWrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciKv::getCode, (Object)cfg.getCode())).eq(OciKv::getType, (Object)cfg.getType())).last("LIMIT 1"));
+        OciKv existing = this.kvMapper.selectOne(new LambdaQueryWrapper<OciKv>().eq(OciKv::getCode, cfg.getCode()).eq(OciKv::getType, cfg.getType()).last("LIMIT 1"));
         if (existing != null) {
             existing.setValue(value);
-            this.kvMapper.updateById((Object)existing);
+            this.kvMapper.updateById(existing);
         } else {
             OciKv kv = new OciKv();
             kv.setId(CommonUtils.generateId());
             kv.setCode(cfg.getCode());
             kv.setType(cfg.getType());
             kv.setValue(value);
-            this.kvMapper.insert((Object)kv);
+            this.kvMapper.insert(kv);
         }
     }
 
     public void removeKvValue(SysCfgEnum cfg) {
-        this.kvMapper.delete((Wrapper)((LambdaQueryWrapper)new LambdaQueryWrapper().eq(OciKv::getCode, (Object)cfg.getCode())).eq(OciKv::getType, (Object)cfg.getType()));
+        this.kvMapper.delete(new LambdaQueryWrapper<OciKv>().eq(OciKv::getCode, cfg.getCode()).eq(OciKv::getType, cfg.getType()));
     }
 
     public void sendSecurityTextWithInlineKeyboard(String text, List<List<Map<String, String>>> inlineKeyboard) {
@@ -218,7 +218,7 @@ public class NotificationService {
             c.send(req, HttpResponse.BodyHandlers.discarding());
         }
         catch (Exception e) {
-            log.warn("Failed to send Telegram security keyboard message: {}", (Object)e.getMessage());
+            log.warn("Failed to send Telegram security keyboard message: {}", e.getMessage());
         }
     }
 
@@ -248,7 +248,7 @@ public class NotificationService {
             c.send(req, HttpResponse.BodyHandlers.discarding());
         }
         catch (Exception e) {
-            log.warn("Failed to answer Telegram callback: {}", (Object)e.getMessage());
+            log.warn("Failed to answer Telegram callback: {}", e.getMessage());
         }
     }
 
@@ -272,7 +272,7 @@ public class NotificationService {
             log.info("Telegram setMyCommands registered (start/stop/logs/state/bans)");
         }
         catch (Exception e) {
-            log.warn("Failed to register Telegram bot commands: {}", (Object)e.getMessage());
+            log.warn("Failed to register Telegram bot commands: {}", e.getMessage());
         }
     }
 
@@ -313,10 +313,10 @@ public class NotificationService {
                 return false;
             }
             JSONObject root = JSONUtil.parseObj((String)resp.body());
-            return root.getBool((Object)"ok", Boolean.valueOf(false));
+            return root.getBool("ok", false);
         }
         catch (Exception e) {
-            log.warn("[TG] deleteWebhook failed: {}", (Object)e.getMessage());
+            log.warn("[TG] deleteWebhook failed: {}", e.getMessage());
             return false;
         }
     }
@@ -336,19 +336,19 @@ public class NotificationService {
                 sb.append("&offset=").append(offset);
             }
             if ((resp = (c = this.ociProxyConfigService.newOutboundHttpClient()).send(req = HttpRequest.newBuilder(URI.create(sb.toString())).GET().timeout(Duration.ofSeconds((long)timeoutSec + 45L)).build(), HttpResponse.BodyHandlers.ofString())).statusCode() != 200 || resp.body() == null) {
-                log.warn("[TG] getUpdates HTTP {}", (Object)resp.statusCode());
+                log.warn("[TG] getUpdates HTTP {}", resp.statusCode());
                 return null;
             }
             JSONObject root = JSONUtil.parseObj((String)resp.body());
-            if (!root.getBool((Object)"ok", Boolean.valueOf(false)).booleanValue()) {
-                log.warn("[TG] getUpdates ok=false: {}", (Object)root.getStr((Object)"description"));
+            if (!root.getBool("ok", false)) {
+                log.warn("[TG] getUpdates ok=false: {}", root.getStr("description"));
                 return null;
             }
-            JSONArray arr = root.getJSONArray((Object)"result");
+            JSONArray arr = root.getJSONArray("result");
             return arr != null ? arr : new JSONArray();
         }
         catch (Exception e) {
-            log.warn("[TG] getUpdates failed: {}", (Object)e.getMessage());
+            log.warn("[TG] getUpdates failed: {}", e.getMessage());
             return null;
         }
     }

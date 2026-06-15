@@ -327,12 +327,12 @@ implements Closeable {
         Optional optional = ocx = ps == null ? Optional.empty() : ps.getOciProxyConfiguration();
         if (socksPool != null) {
             ociApacheCfg = b -> {
-                b.property((ClientProperty)ApacheClientProperties.CONNECTION_MANAGER, (Object)socksPool);
-                b.property((ClientProperty)ApacheClientProperties.CONNECTION_MANAGER_SHARED, (Object)Boolean.TRUE);
+                b.property(ApacheClientProperties.CONNECTION_MANAGER, socksPool);
+                b.property(ApacheClientProperties.CONNECTION_MANAGER_SHARED, Boolean.TRUE);
             };
         } else if (ocx.isPresent()) {
             ProxyConfiguration pc = (ProxyConfiguration)ocx.get();
-            ociApacheCfg = c -> c.property(StandardClientProperties.PROXY, (Object)pc);
+            ociApacheCfg = c -> c.property(StandardClientProperties.PROXY, pc);
         } else {
             ociApacheCfg = OciProxyConfigService.ociSdkJerseyDirectConfigurator();
         }
@@ -538,7 +538,7 @@ implements Closeable {
         result.setRegion(this.user.getOciCfg().getRegion());
         result.setArchitecture(this.user.getArchitecture());
         result.setCreateNumbers(this.user.getCreateNumbers());
-        List availabilityDomains = this.getAvailabilityDomains();
+        List<AvailabilityDomain> availabilityDomains = this.getAvailabilityDomains();
         String targetShape = OciClientService.resolveTargetShape((String)this.user.getArchitecture());
         result.setResolvedTargetShape(targetShape);
         Set excludedAds = this.user.getExcludedAvailabilityDomains() != null ? this.user.getExcludedAvailabilityDomains() : Set.of();

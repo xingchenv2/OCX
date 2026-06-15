@@ -25,9 +25,9 @@
  *  com.oracle.bmc.identity.model.UpdateUserCapabilitiesDetails$Builder
  *  com.oracle.bmc.identity.model.UpdateUserDetails
  *  com.oracle.bmc.identity.model.UpdateUserDetails$Builder
- *  com.oracle.bmc.identity.model.User
- *  com.oracle.bmc.identity.model.UserCapabilities
- *  com.oracle.bmc.identity.model.UserGroupMembership
+ *  com.oracle.bmc.identitydomains.model.User
+ *  com.oracle.bmc.identitydomains.model.UserCapabilities
+ *  com.oracle.bmc.identitydomains.model.UserGroupMembership
  *  com.oracle.bmc.identity.requests.AddUserToGroupRequest
  *  com.oracle.bmc.identity.requests.CreateOrResetUIPasswordRequest
  *  com.oracle.bmc.identity.requests.CreateUserRequest
@@ -101,9 +101,8 @@ import com.oracle.bmc.identity.model.MfaTotpDeviceSummary;
 import com.oracle.bmc.identity.model.UpdateStateDetails;
 import com.oracle.bmc.identity.model.UpdateUserCapabilitiesDetails;
 import com.oracle.bmc.identity.model.UpdateUserDetails;
-import com.oracle.bmc.identity.model.User;
-import com.oracle.bmc.identity.model.UserCapabilities;
-import com.oracle.bmc.identity.model.UserGroupMembership;
+import com.oracle.bmc.identitydomains.model.UserCapabilities;
+import com.oracle.bmc.identitydomains.model.UserGroupMembership;
 import com.oracle.bmc.identity.requests.AddUserToGroupRequest;
 import com.oracle.bmc.identity.requests.CreateOrResetUIPasswordRequest;
 import com.oracle.bmc.identity.requests.DeleteMfaTotpDeviceRequest;
@@ -204,7 +203,7 @@ public class UserManagementService {
         try (IdentityClient client = this.buildClient(tenant);){
             ListUsersResponse response = client.listUsers(ListUsersRequest.builder().compartmentId(tenant.getOciTenantId()).build());
             ArrayList result = new ArrayList();
-            for (User user : response.getItems()) {
+            for (com.oracle.bmc.identitydomains.model.User user : response.getItems()) {
                 LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
                 map.put("id", user.getId());
                 map.put("name", user.getName());
