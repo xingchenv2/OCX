@@ -89,8 +89,8 @@ public class SystemService {
     private OciProxyConfigService ociProxyConfigService;
     @Resource
     private StorageService storageService;
-    private static final String REPO = "OCIworker/OCIworker";
-    private static final String PUBLIC_RELEASE_REPO = "OCIworker/OCIworker";
+    private static final String REPO = "xingchenv2/OCX";
+    private static final String PUBLIC_RELEASE_REPO = "xingchenv2/OCX";
     private static final String JAR_PATH = "/opt/oci-worker/oci-worker.jar";
     private static final String ASSET_NAME = "oci-worker-1.0.0.jar";
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -127,7 +127,7 @@ public class SystemService {
             result.put("currentSizeHuman", "\u672a\u627e\u5230");
         }
         try {
-            String tagLatestApi = "https://api.github.com/repos/OCIworker/OCIworker/releases/tags/latest";
+            String tagLatestApi = "https://api.github.com/repos/xingchenv2/OCX/releases/tags/latest";
             HttpClient client = this.ociProxyConfigService.newOutboundHttpClient();
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(tagLatestApi)).header("Accept", "application/vnd.github.v3+json").timeout(Duration.ofSeconds(15L)).GET().build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -173,10 +173,10 @@ public class SystemService {
                 result.put("notice", "\u65e0\u6cd5\u4ece GitHub Release \u8bf4\u660e\u4e2d\u89e3\u6790\u6784\u5efa commit\uff0c\u8bf7\u53bb\u4ed3\u5e93 Releases \u6838\u5bf9");
             } else if (this.currentCommit.equalsIgnoreCase(latestCommit)) {
                 result.put("hasUpdate", false);
-            } else if ("OCIworker/OCIworker".equalsIgnoreCase("OCIworker/OCIworker")) {
+            } else if ("xingchenv2/OCX".equalsIgnoreCase("xingchenv2/OCX")) {
                 result.put("hasUpdate", true);
             } else {
-                String compareApi = "https://api.github.com/repos/OCIworker/OCIworker/compare/" + latestCommit + "..." + this.currentCommit;
+                String compareApi = "https://api.github.com/repos/xingchenv2/OCX/compare/" + latestCommit + "..." + this.currentCommit;
                 HttpRequest cr = HttpRequest.newBuilder().uri(URI.create(compareApi)).header("Accept", "application/vnd.github.v3+json").timeout(Duration.ofSeconds(15L)).GET().build();
                 HttpResponse<String> cResp = client.send(cr, HttpResponse.BodyHandlers.ofString());
                 if (cResp.statusCode() == 200) {
@@ -227,7 +227,7 @@ public class SystemService {
             throw new OciException("\u672a\u627e\u5230 /opt/oci-worker/oci-worker.jar\uff0c\u8bf7\u5148\u901a\u8fc7 deploy.sh \u90e8\u7f72");
         }
         try {
-            String script = "#!/bin/bash\nset -e\nREPO=\"%s\"\nASSET=\"%s\"\nJAR=\"%s\"\n# \u76f4\u8fde latest \u8d44\u6e90\uff0c\u907f\u514d\u5148\u8c03 api.github.com + grep\uff08\u7701\u4e00\u6b21 RTT\uff0c\u4e5f\u964d\u4f4e\u9650\u6d41\u6982\u7387\uff09\nJAR_URL=\"https://github.com/${REPO}/releases/download/latest/${ASSET}\"\ncurl -fSL --retry 2 --retry-delay 2 --connect-timeout 15 --max-time 600 -o \"${JAR}.tmp\" \"$JAR_URL\"\nNEW_SIZE=$(stat -c%%s \"${JAR}.tmp\" 2>/dev/null || echo 0)\nif [ \"$NEW_SIZE\" -lt 1000 ]; then\n  rm -f \"${JAR}.tmp\"\n  echo \"Download failed: file too small (${NEW_SIZE} bytes)\"\n  exit 1\nfi\nmv \"${JAR}.tmp\" \"$JAR\"\nsystemctl stop oci-webssh 2>/dev/null || true\nsystemctl disable oci-webssh 2>/dev/null || true\nrm -f /opt/oci-worker/oci-webssh\nrm -f /etc/systemd/system/oci-webssh.service\nsystemctl daemon-reload 2>/dev/null || true\nsystemctl restart oci-worker\n".formatted("OCIworker/OCIworker", ASSET_NAME, JAR_PATH);
+            String script = "#!/bin/bash\nset -e\nREPO=\"%s\"\nASSET=\"%s\"\nJAR=\"%s\"\n# \u76f4\u8fde latest \u8d44\u6e90\uff0c\u907f\u514d\u5148\u8c03 api.github.com + grep\uff08\u7701\u4e00\u6b21 RTT\uff0c\u4e5f\u964d\u4f4e\u9650\u6d41\u6982\u7387\uff09\nJAR_URL=\"https://github.com/${REPO}/releases/download/latest/${ASSET}\"\ncurl -fSL --retry 2 --retry-delay 2 --connect-timeout 15 --max-time 600 -o \"${JAR}.tmp\" \"$JAR_URL\"\nNEW_SIZE=$(stat -c%%s \"${JAR}.tmp\" 2>/dev/null || echo 0)\nif [ \"$NEW_SIZE\" -lt 1000 ]; then\n  rm -f \"${JAR}.tmp\"\n  echo \"Download failed: file too small (${NEW_SIZE} bytes)\"\n  exit 1\nfi\nmv \"${JAR}.tmp\" \"$JAR\"\nsystemctl stop oci-webssh 2>/dev/null || true\nsystemctl disable oci-webssh 2>/dev/null || true\nrm -f /opt/oci-worker/oci-webssh\nrm -f /etc/systemd/system/oci-webssh.service\nsystemctl daemon-reload 2>/dev/null || true\nsystemctl restart oci-worker\n".formatted("xingchenv2/OCX", ASSET_NAME, JAR_PATH);
             Path scriptFile = Path.of("/tmp/oci-worker-update.sh", new String[0]);
             Files.writeString(scriptFile, (CharSequence)script, new OpenOption[0]);
             try {
