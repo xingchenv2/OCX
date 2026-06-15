@@ -1,0 +1,1 @@
+import{t as e}from"./request-DUjxF883.js";function t(){return e.get(`/sys/glance`)}function n(t){return e.post(`/sys/sendVerifyCode`,{action:t})}function r(){return e.get(`/sys/tgStatus`)}function i(t){return e.get(`/sys/ociRegionOptions`,{params:t?{userId:t}:{}})}export{n as i,r as n,i as r,t};

@@ -1,0 +1,1 @@
+function e(e,t=()=>!0){let n=[];for(let r of e)if(t(r,1)&&n.push(r.key),r.children)for(let e of r.children)t(e,2)&&n.push(e.key);return n}function t(e,t){if(t.length===0)return!1;let n=e instanceof Set?e:new Set(e);return t.every(e=>n.has(e))}export{t as n,e as t};
