@@ -989,11 +989,11 @@ EOF
 write_systemd_unit() {
     info "写入 systemd 服务：${SERVICE_NAME}..."
     # Create dedicated service user (no login shell)
-    if ! id -u ocx >/dev/null 2>&1; then
-        useradd --system --no-create-home --shell /usr/sbin/nologin ocx 2>/dev/null || true
+    if ! id -u ocxworker >/dev/null 2>&1; then
+        useradd --system --no-create-home --shell /usr/sbin/nologin ocxworker 2>/dev/null || true
     fi
     # Ensure install dir is owned by service user
-    chown -R ocxworker:ocx "${INSTALL_DIR}" 2>/dev/null || true
+    chown -R ocxworker:ocxworker "${INSTALL_DIR}" 2>/dev/null || true
     cat > "${SERVICE_FILE}" <<EOF
 [Unit]
 Description=OCX
