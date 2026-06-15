@@ -598,7 +598,7 @@ prompt_db_existing() {
     section "数据库连接配置"
     cat >&2 <<EOF
 请确保已在面板里准备好：
-  1. 数据库（默认建议名：oci_worker）
+  1. 数据库（默认建议名：ocx_worker）
   2. 用户（默认建议名：ocxworker）
   3. 字符集 utf8mb4 / utf8mb4_unicode_ci
   4. 用户对该库有所有权限
@@ -608,7 +608,7 @@ EOF
     while true; do
         DB_HOST="$(ask "数据库地址" "127.0.0.1")"
         DB_PORT="$(ask "数据库端口" "3306")"
-        DB_NAME="$(ask "数据库名"   "oci_worker")"
+        DB_NAME="$(ask "数据库名"   "ocx_worker")"
         DB_USER="$(ask "用户名"     "ocxworker")"
         DB_PASS="$(ask_password "密码")"
 
@@ -686,7 +686,7 @@ prompt_db_docker() {
     fi
     DB_HOST="127.0.0.1"
     DB_PORT="3306"
-    DB_NAME="$(ask "数据库名"   "oci_worker")"
+    DB_NAME="$(ask "数据库名"   "ocx_worker")"
     DB_USER="$(ask "用户名"     "ocxworker")"
     DB_PASS="$(ask_password "新建用户密码（至少 8 位，建议含字母数字）")"
     while [ "${#DB_PASS}" -lt 6 ]; do
@@ -791,7 +791,7 @@ prompt_db_root() {
     root_user="$(ask "root 用户名" "root")"
     root_pass="$(ask_password "root 密码")"
 
-    DB_NAME="$(ask "新建数据库名" "oci_worker")"
+    DB_NAME="$(ask "新建数据库名" "ocx_worker")"
     DB_USER="$(ask "新建用户名"   "ocxworker")"
     DB_PASS="$(ask_password "新建用户密码")"
     while [ "${#DB_PASS}" -lt 6 ]; do
