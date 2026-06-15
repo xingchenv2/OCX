@@ -11,7 +11,7 @@
 #   * Atomic config writes with .bak rollback if the new config breaks startup.
 #
 # This script is INDEPENDENT of the original deploy.sh / update.sh.
-# It does NOT modify anything outside /opt/ocx-worker, /etc/systemd/system,
+# It does NOT modify anything outside /opt/oci-worker, /etc/systemd/system,
 # /usr/local/bin/ocx.
 #
 # Run as root:
@@ -23,13 +23,13 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Constants (DO NOT change unless backend code changes accordingly)
 # -----------------------------------------------------------------------------
-readonly INSTALL_DIR="/opt/ocx-worker"
+readonly INSTALL_DIR="/opt/oci-worker"
 readonly KEYS_DIR="${INSTALL_DIR}/keys"
 readonly BACKUP_DIR="${INSTALL_DIR}/backups"
-readonly JAR_NAME="ocx-worker.jar"
-readonly JAR_ASSET="ocx-worker-1.0.0.jar"
+readonly JAR_NAME="oci-worker.jar"
+readonly JAR_ASSET="oci-worker-1.0.0.jar"
 readonly CONFIG_FILE="${INSTALL_DIR}/application.yml"
-readonly SERVICE_NAME="ocx-worker"
+readonly SERVICE_NAME="oci-worker"
 readonly SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 readonly LEGACY_WEBSSH_BIN="${INSTALL_DIR}/oci-webssh"
 readonly LEGACY_WEBSSH_SERVICE="oci-webssh"
@@ -40,7 +40,7 @@ readonly INSTALLER_RELEASE_TAG="installer-latest"
 readonly RAW_BASE="https://raw.githubusercontent.com/${REPO}/main"
 
 readonly OCX_BIN="/usr/local/bin/ocx"
-readonly TMP_DIR="$(mktemp -d -t ocx-worker-installer.XXXXXX)"
+readonly TMP_DIR="$(mktemp -d -t oci-worker-installer.XXXXXX)"
 
 # JDK 21 (Adoptium Temurin)
 readonly JDK_VERSION="21.0.7+6"
@@ -262,7 +262,7 @@ install_jdk21() {
 DB_HOST=""; DB_PORT=""; DB_NAME=""; DB_USER=""; DB_PASS=""
 
 docker_mysql_container_up() {
-    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "ocx-worker-mysql"
+    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "oci-worker-mysql"
 }
 
 # Write a temporary mysql defaults-file so MYSQL_PWD is not visible in /proc.
@@ -283,16 +283,16 @@ _mysql_cnf_cleanup() {
     rm -f "${TMP_DIR}/.mysql_cnf/"*.cnf 2>/dev/null || true
 }
 
-# Run mysql inside ocx-worker-mysql (avoids host MariaDB client vs MySQL 8 quirks on Debian 13+).
+# Run mysql inside oci-worker-mysql (avoids host MariaDB client vs MySQL 8 quirks on Debian 13+).
 mysql_docker_run() {
     local user="$1" pass="$2" db="$3" sql="$4"
     local args=(-u"${user}" -N -B --connect-timeout=5)
     [ -n "${db}" ] && args+=("${db}")
-    local cnf="$(docker exec -i ocx-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf && echo /tmp/.m.cnf' <<<"[client]\npassword=${pass}")"
+    local cnf="$(docker exec -i oci-worker-mysql sh -c 'cat > /tmp/.m.cnf && chmod 600 /tmp/.m.cnf && echo /tmp/.m.cnf' <<<"[client]\npassword=${pass}")"
     local out errf err=""
     errf="$(mktemp)"
-    out="$(docker exec ocx-worker-mysql mysql --defaults-file=/tmp/.m.cnf "${args[@]}" -e "${sql}" 2>"${errf}" || true)"
-    docker exec ocx-worker-mysql rm -f /tmp/.m.cnf 2>/dev/null || true
+    out="$(docker exec oci-worker-mysql mysql --defaults-file=/tmp/.m.cnf "${args[@]}" -e "${sql}" 2>"${errf}" || true)"
+    docker exec oci-worker-mysql rm -f /tmp/.m.cnf 2>/dev/null || true
     if [ -s "${errf}" ]; then
         err="$(tr '\n' ' ' < "${errf}" | sed 's/  */ /g')"
     fi
@@ -314,7 +314,7 @@ mysql_output_is_one() {
 }
 
 docker_mysql_logs_final_ready() {
-    docker logs ocx-worker-mysql 2>&1 | grep -qE 'ready for connections.*port: 3306'
+    docker logs oci-worker-mysql 2>&1 | grep -qE 'ready for connections.*port: 3306'
 }
 
 # Host mysql: keep stderr separate so MariaDB client WARNING lines do not break parsing.
@@ -419,8 +419,7 @@ wait_docker_mysql_user() {
                 ;;
             auth_fail)
                 printf "\n" >&2
-                err "MySQL 已启动，但用户名或密码错误。复用容器时请填写首次创建时的密码；不记得请选重新创建容器（或清空 /opt/ocx-worker/data/mysql 后重装）。"
-                return 1
+                die "MySQL 已启动，但用户名或密码错误。复用容器时请填写首次创建时的密码；不记得请选重新创建容器（或清空 /opt/oci-worker/data/mysql 后重装）。"
                 ;;
             *)
                 consecutive=0
@@ -443,19 +442,16 @@ verify_docker_mysql_credentials() {
             ok "登录成功"
             ;;
         auth_fail)
-            err "无法用当前用户名/密码连接容器内 MySQL（密码须与容器初始化时一致，或选择重新创建容器）"
-            return 1
+            die "无法用当前用户名/密码连接容器内 MySQL（密码须与容器初始化时一致，或选择重新创建容器）"
             ;;
         conn_fail)
-            err "无法连接 127.0.0.1:3306，请检查容器：docker logs ocx-worker-mysql"
-            return 1
+            die "无法连接 127.0.0.1:3306，请检查容器：docker logs oci-worker-mysql"
             ;;
         *)
-            err "MySQL 返回错误：${probe#other:}"
-            return 1
+            die "MySQL 返回错误：${probe#other:}"
             ;;
     esac
-    check_database_quality || return 1
+    check_database_quality || die "数据库自检未通过"
 }
 
 ensure_mysql_client() {
@@ -697,49 +693,24 @@ prompt_db_docker() {
     root_pass="$(ask_password "root 密码（用于初始化，可与上方相同）")"
     [ -n "${root_pass}" ] || root_pass="${DB_PASS}"
 
-    if docker ps -a --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
-        warn "已存在容器 ocx-worker-mysql"
-        if [ "$(ask_yes_no "重新创建？（会保留 /opt/ocx-worker/data/mysql 数据目录）" "N")" = "y" ]; then
-            docker rm -f ocx-worker-mysql >/dev/null
+    if docker ps -a --format '{{.Names}}' | grep -qx "oci-worker-mysql"; then
+        warn "已存在容器 oci-worker-mysql"
+        if [ "$(ask_yes_no "重新创建？（会保留 /opt/oci-worker/data/mysql 数据目录）" "N")" = "y" ]; then
+            docker rm -f oci-worker-mysql >/dev/null
         else
-            info "复用已有容器，请输入首次创建该容器时设置的密码"
+            info "复用已有容器"
         fi
     fi
 
-    # Loop: try reuse or (re)create container
-    while true; do
-    if docker ps -a --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
-        if ! docker ps --format '{{.Names}}' | grep -qx "ocx-worker-mysql"; then
-            info "启动已有容器 ocx-worker-mysql..."
-            docker start ocx-worker-mysql >/dev/null || die "启动容器失败：docker start ocx-worker-mysql"
-            if ! wait_docker_mysql_user; then
-                err "MySQL 启动超时，请查看：docker logs ocx-worker-mysql"
-                if [ "$(ask_yes_no "是否重新创建容器？（旧数据保留在 /opt/ocx-worker/data/mysql，新容器会复用它）" "N")" = "y" ]; then
-                    docker rm -f ocx-worker-mysql >/dev/null
-                    continue
-                fi
-                die "MySQL 启动失败，无法继续安装"
-            fi
+    if docker ps -a --format '{{.Names}}' | grep -qx "oci-worker-mysql"; then
+        if ! docker ps --format '{{.Names}}' | grep -qx "oci-worker-mysql"; then
+            info "启动已有容器 oci-worker-mysql..."
+            docker start oci-worker-mysql >/dev/null || die "启动容器失败：docker start oci-worker-mysql"
+            wait_docker_mysql_user || die "MySQL 启动超时，请查看：docker logs oci-worker-mysql"
         fi
-        if verify_docker_mysql_credentials; then
-            return 0
-        fi
-        # Credentials wrong
-        err "无法用当前用户名/密码连接容器内 MySQL（密码须与容器初始化时一致）"
-        if [ "$(ask_yes_no "重新输入密码再试？" "Y")" = "y" ]; then
-            DB_USER="$(ask "用户名" "${DB_USER}")"
-            DB_PASS="$(ask_password "密码（首次创建时的密码）")"
-            continue
-        fi
-        if [ "$(ask_yes_no "是否重新创建容器？（旧数据保留在 /opt/ocx-worker/data/mysql，新容器会复用它）" "N")" = "y" ]; then
-            docker rm -f ocx-worker-mysql >/dev/null
-            continue
-        fi
-        die "数据库配置未完成，已退出安装"
-    else
-        break
+        verify_docker_mysql_credentials
+        return 0
     fi
-    done
 
     # Check port 3306 availability before docker run
     if ss -tlnp 2>/dev/null | grep -q ':3306\b'; then
@@ -750,7 +721,7 @@ prompt_db_docker() {
     fi
 
     info "启动 MySQL 8.0 容器..."
-    mkdir -p /opt/ocx-worker/data/mysql
+    mkdir -p /opt/oci-worker/data/mysql
     # NOTE: MySQL Docker image does NOT support _FILE env var suffixes like Postgres does.
     # We still need to pass passwords via -e, but we mitigate the exposure:
     #   1. The container is bound to 127.0.0.1 only (no external access)
@@ -758,10 +729,10 @@ prompt_db_docker() {
     #   3. /proc/PID/environ requires root on the host to read
     # For production, use Docker Swarm secrets or external secret management.
     docker run -d \
-        --name ocx-worker-mysql \
+        --name oci-worker-mysql \
         --restart always \
         -p 127.0.0.1:3306:3306 \
-        -v /opt/ocx-worker/data/mysql:/var/lib/mysql \
+        -v /opt/oci-worker/data/mysql:/var/lib/mysql \
         -e MYSQL_ROOT_PASSWORD="${root_pass}" \
         -e MYSQL_DATABASE="${DB_NAME}" \
         -e MYSQL_USER="${DB_USER}" \
@@ -772,8 +743,8 @@ prompt_db_docker() {
         --collation-server=utf8mb4_unicode_ci >/dev/null \
         || die "MySQL 容器启动失败"
     # Clean up secrets dir (don't leave password files on disk)
-    rm -rf /opt/ocx-worker/data/mysql-secrets
-    wait_docker_mysql_user || die "MySQL 启动超时，请查看：docker logs ocx-worker-mysql"
+    rm -rf /opt/oci-worker/data/mysql-secrets
+    wait_docker_mysql_user || die "MySQL 启动超时，请查看：docker logs oci-worker-mysql"
     verify_docker_mysql_credentials
 }
 
@@ -1120,7 +1091,7 @@ cleanup_legacy_webssh() {
     systemctl daemon-reload 2>/dev/null || true
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "webssh"; then
         docker stop webssh >/dev/null 2>&1 || true
-        (cd /opt/ocx-worker/webssh 2>/dev/null && docker compose down >/dev/null 2>&1) || true
+        (cd /opt/oci-worker/webssh 2>/dev/null && docker compose down >/dev/null 2>&1) || true
     fi
 }
 
