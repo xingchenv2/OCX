@@ -715,8 +715,8 @@ prompt_db_docker() {
     # Check port 3306 availability before docker run
     if ss -tlnp 2>/dev/null | grep -q ':3306\b'; then
         warn "端口 3306 已被占用，Docker 端口映射可能失败"
-        if [ "$(ask_yes_no \'端口冲突可能导致安装失败，是否继续？\u0027 \'N')" != 'y' ]; then
-            die "请先停止占用 3306 端口的服务，或选择"使用已有 MySQL""
+        if [ "$(ask_yes_no '端口冲突可能导致安装失败，是否继续？' 'N')" != 'y' ]; then
+                die '请先停止占用 3306 端口的服务，或选择 使用已有MySQL'
         fi
     fi
 
