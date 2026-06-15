@@ -1096,8 +1096,12 @@ extract_jar() {
     info "解压 JAR 到 ${APP_DIR}…"
     rm -rf "${APP_DIR}"
     mkdir -p "${APP_DIR}"
-    if ! (cd "${APP_DIR}" && jar xf "${INSTALL_DIR}/${JAR_NAME}" 2>&1); then
-        err "JAR 解压失败"
+    if (cd "${APP_DIR}" && unzip -q "${INSTALL_DIR}/${JAR_NAME}" 2>&1) 2>/dev/null; then
+        : # unzip succeeded
+    elif (cd "${APP_DIR}" && jar xf "${INSTALL_DIR}/${JAR_NAME}" 2>&1) 2>/dev/null; then
+        : # jar succeeded
+    else
+        err "JAR 解压失败（unzip 和 jar 都不可用或失败）"
         rm -rf "${APP_DIR}"
         return 1
     fi
